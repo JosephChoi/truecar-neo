@@ -16,6 +16,8 @@ export function OrderForm() {
     carModel: "",
     budget: "",
     mileage: "",
+    preferredColor: "관계없음",
+    repairHistory: "완전무사고차량",
     carUrl: "",
     message: "",
   });
@@ -40,17 +42,7 @@ export function OrderForm() {
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              맞춤 중고차 상담하기
-            </h2>
-            <p className="text-xl text-gray-700">
-              원하시는 차량 정보를 입력해주시면<br />
-              전문 상담사가 최적의 차량을 찾아드립니다
-            </p>
-          </div>
-          
-          <Card className="border-none shadow-lg overflow-hidden">
+          <Card className="border border-gray-200 shadow-xl overflow-hidden rounded-xl bg-white">
             <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -129,6 +121,38 @@ export function OrderForm() {
                       className="h-12 rounded-md"
                     />
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="preferredColor" className="font-medium">선호하는 차량색상(외부)</Label>
+                    <select
+                      id="preferredColor"
+                      name="preferredColor"
+                      value={formData.preferredColor}
+                      onChange={handleChange}
+                      className="h-12 w-full rounded-md border border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3"
+                    >
+                      <option value="흰색">흰색</option>
+                      <option value="검정색">검정색</option>
+                      <option value="은색(회색)">은색(회색)</option>
+                      <option value="파란색(남색)">파란색(남색)</option>
+                      <option value="관계없음">관계없음</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="repairHistory" className="font-medium">단순수리여부</Label>
+                    <select
+                      id="repairHistory"
+                      name="repairHistory"
+                      value={formData.repairHistory}
+                      onChange={handleChange}
+                      className="h-12 w-full rounded-md border border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3"
+                    >
+                      <option value="완전무사고차량">완전무사고차량</option>
+                      <option value="단순교환(볼트체결부품)">단순교환(볼트체결부품)</option>
+                      <option value="관계없음">관계없음</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -158,9 +182,12 @@ export function OrderForm() {
                   />
                 </div>
                 
-                <div className="text-center pt-4">
+                <div className="text-center pt-4 space-y-4">
+                  <p className="text-gray-600 text-sm">
+                    ※ 차량신청 후 3일 이내에 전문상담사의 확인 전화가 있을 예정입니다.
+                  </p>
                   <Button type="submit" size="lg" className="w-full md:w-auto px-12 py-6 h-auto text-lg font-medium bg-blue-600 hover:bg-blue-700 rounded-full transition-colors">
-                    무료 상담 신청하기
+                    차량 주문하기
                   </Button>
                 </div>
               </form>
