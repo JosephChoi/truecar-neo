@@ -21,6 +21,7 @@ interface ReviewDetailProps {
   content: string;
   author: string;
   date: string;
+  imageUrl?: string;
   orderDetail?: OrderDetail;
   isAdmin?: boolean;
   onEdit?: () => void;
@@ -33,6 +34,7 @@ export default function ReviewDetail({
   content,
   author,
   date,
+  imageUrl,
   orderDetail,
   isAdmin = false,
   onEdit,
@@ -40,6 +42,9 @@ export default function ReviewDetail({
 }: ReviewDetailProps) {
   // 내용을 단락으로 분할
   const paragraphs = content.split('\n').filter(p => p.trim() !== '');
+
+  // 이미지 URL 결정 (리뷰 직접 이미지 또는 주문 내역 이미지)
+  const displayImageUrl = imageUrl || orderDetail?.imageUrl;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
@@ -85,6 +90,19 @@ export default function ReviewDetail({
           </div>
         </div>
         
+        {/* 이미지가 있는 경우, 주문 내역 위에 표시 */}
+        {displayImageUrl && (
+          <div className="p-6 md:p-8 border-b border-gray-200">
+            <div className="relative h-64 md:h-96 rounded-lg overflow-hidden">
+              <img 
+                src={displayImageUrl} 
+                alt={title}
+                className="object-contain w-full h-full"
+              />
+            </div>
+          </div>
+        )}
+        
         {orderDetail && (
           <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
             <h2 className="text-lg font-bold mb-4">[ 주문내역 ]</h2>
@@ -111,16 +129,6 @@ export default function ReviewDetail({
                   <div className="text-gray-900">{orderDetail.referenceSite}</div>
                 </div>
               </div>
-              
-              {orderDetail.imageUrl && (
-                <div className="relative h-48 md:h-full rounded-lg overflow-hidden">
-                  <img 
-                    src={orderDetail.imageUrl} 
-                    alt={orderDetail.vehicleType}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
             </div>
           </div>
         )}

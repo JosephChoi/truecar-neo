@@ -1,22 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { reviewData } from "@/lib/review-data";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getAllReviews, deleteReview, initializeReviews } from "@/lib/storage-utils";
 
 export default function AdminReviewsPage() {
   const router = useRouter();
-  const [reviews, setReviews] = useState(reviewData);
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  // 컴포넌트 마운트 시 로컬 스토리지에서 리뷰 데이터 로드
+  useEffect(() => {
+    // localStorage 초기화 (최초 접근 시 기본 데이터 설정)
+    initializeReviews();
+    
+    // 리뷰 데이터 로드
+    const loadedReviews = getAllReviews();
+    setReviews(loadedReviews);
+  }, []);
 
   const handleDelete = (id: string) => {
-    // 실제 구현에서는 API 호출을 통해 데이터를 삭제합니다.
-    // 여기서는 클라이언트 상태에서만 삭제합니다.
     if (confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
-      setReviews(reviews.filter(review => review.id !== id));
+      const success = deleteReview(id);
+      if (success) {
+        // UI 업데이트
+        setReviews(reviews.filter(review => review.id !== id));
+      }
     }
   };
 

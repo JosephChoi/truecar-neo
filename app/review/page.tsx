@@ -1,50 +1,57 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { reviewData } from "@/lib/review-data";
 import Link from "next/link";
 import Image from "next/image";
+import { getAllReviews, initializeReviews } from "@/lib/storage-utils";
 
 function ReviewCard({ review }: { review: any }) {
-  // 미리보기용 내용 추출 (150자 제한)
-  const previewContent = review.content.length > 150 
-    ? review.content.substring(0, 150) + "..." 
-    : review.content;
+  // 이미지 URL 결정 (리뷰 직접 이미지 또는 주문 내역 이미지)
+  const imageUrl = review.imageUrl || (review.orderDetail?.imageUrl);
 
   return (
-    <Link href={`/review/${review.id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
-        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
-          {review.orderDetail?.imageUrl && (
-            <div className="relative h-48 md:h-auto">
+    <Link href={`/review/${review.id}`} className="block h-full">
+      <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer h-full">
+        <div className="flex flex-col h-full">
+          {/* 이미지 영역 */}
+          <div className="relative aspect-[4/3] overflow-hidden w-full">
+            {imageUrl ? (
               <img 
-                src={review.orderDetail.imageUrl} 
+                src={imageUrl} 
                 alt={review.title}
                 className="object-cover w-full h-full"
               />
-            </div>
-          )}
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                  <circle cx="9" cy="9" r="2"></circle>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                </svg>
+              </div>
+            )}
+          </div>
           
-          <CardContent className={`p-6 ${review.orderDetail?.imageUrl ? 'md:col-span-2' : 'md:col-span-3'}`}>
-            <h2 className="text-xl font-bold mb-2 text-gray-900">{review.title}</h2>
-            
-            <div className="flex items-center mb-4 text-sm text-gray-500">
-              <span>{review.author}</span>
-              <span className="mx-2">•</span>
-              <span>{review.date}</span>
-              <span className="mx-2">•</span>
-              <span>조회 {review.views}</span>
-            </div>
-            
-            <p className="text-gray-700 mb-4">{previewContent}</p>
-            
+          {/* 콘텐츠 영역 */}
+          <CardContent className="p-4 flex flex-col flex-grow">
             {review.orderDetail && (
-              <div className="flex items-center mt-4 text-sm text-gray-500">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+              <div className="mb-2">
+                <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                   {review.orderDetail.vehicleType}
                 </span>
               </div>
             )}
+            
+            <h2 className="text-lg font-bold mb-3 line-clamp-2 text-gray-900">{review.title}</h2>
+            
+            <div className="flex items-center mt-auto text-xs text-gray-500">
+              <span>{review.author}</span>
+              <span className="mx-2">•</span>
+              <span>{review.date}</span>
+            </div>
           </CardContent>
         </div>
       </Card>
@@ -53,6 +60,19 @@ function ReviewCard({ review }: { review: any }) {
 }
 
 export default function ReviewPage() {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // localStorage 초기화 (최초 접근 시 기본 데이터 설정)
+    initializeReviews();
+    
+    // 리뷰 데이터 로드
+    const loadedReviews = getAllReviews();
+    setReviews(loadedReviews);
+    setLoading(false);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -79,12 +99,22 @@ export default function ReviewPage() {
         
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto">
-              <div className="space-y-6">
-                {reviewData.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
+            <div className="max-w-6xl mx-auto">
+              {loading ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">리뷰를 불러오는 중...</p>
+                </div>
+              ) : reviews.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {reviews.map((review) => (
+                    <ReviewCard key={review.id} review={review} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">등록된 리뷰가 없습니다.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>

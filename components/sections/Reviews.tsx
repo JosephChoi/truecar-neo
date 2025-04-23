@@ -1,40 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { reviewData } from "@/lib/review-data";
+import { getAllReviews, initializeReviews, Review } from "@/lib/storage-utils";
 
-// 트루카 고객 후기 이미지 데이터
-const reviewImages = [
-  {
-    id: "1",
-    imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
-    title: "안전한 중고차 거래, 큰 만족입니다",
-    aspectRatio: "aspect-auto",
-    largeImage: true
-  },
-  {
-    id: "2",
-    imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
-    title: "미니쿠퍼 드디어 구매 완료!",
-    aspectRatio: "aspect-auto",
-    largeImage: false
-  },
-  {
-    id: "3",
-    imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
-    title: "신차 같은 중고차 추천해주셔서 감사합니다",
-    aspectRatio: "aspect-auto",
-    largeImage: false
-  },
-  {
-    id: "4",
-    imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
-    title: "코다 SUV 구매 완료! 감사합니다",
-    aspectRatio: "aspect-auto",
-    largeImage: false
-  }
-];
+// 고객 후기 이미지 카드 데이터 구조
+interface ReviewImage {
+  id: string;
+  imageUrl: string;
+  title: string;
+  aspectRatio: string;
+  largeImage: boolean;
+}
 
 interface ReviewImageCardProps {
   id: string;
@@ -78,6 +55,98 @@ function ReviewImageCard({ id, imageUrl, title, isHovered, onHover }: ReviewImag
 
 export function Reviews() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [reviewImages, setReviewImages] = useState<ReviewImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // localStorage 초기화
+    initializeReviews();
+    
+    // 후기 데이터 로드 및 이미지 카드용 데이터 준비
+    const loadedReviews = getAllReviews();
+    
+    // 이미지가 있는 리뷰만 필터링
+    const reviewsWithImages = loadedReviews
+      .filter(review => review.imageUrl)
+      .map(review => ({
+        id: review.id,
+        imageUrl: review.imageUrl || '',
+        title: review.title,
+        aspectRatio: "aspect-auto",
+        largeImage: false
+      }));
+    
+    // 최소 4개 항목 보장 (데이터가 부족한 경우 기본 이미지로 채움)
+    const defaultImages: ReviewImage[] = [
+      {
+        id: "default1",
+        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
+        title: "안전한 중고차 거래, 큰 만족입니다",
+        aspectRatio: "aspect-auto",
+        largeImage: true
+      },
+      {
+        id: "default2",
+        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
+        title: "미니쿠퍼 드디어 구매 완료!",
+        aspectRatio: "aspect-auto",
+        largeImage: false
+      },
+      {
+        id: "default3",
+        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
+        title: "신차 같은 중고차 추천해주셔서 감사합니다",
+        aspectRatio: "aspect-auto",
+        largeImage: false
+      },
+      {
+        id: "default4",
+        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
+        title: "코다 SUV 구매 완료! 감사합니다",
+        aspectRatio: "aspect-auto",
+        largeImage: false
+      }
+    ];
+    
+    // 실제 리뷰 이미지 + 필요한 만큼의 기본 이미지
+    const finalImages = reviewsWithImages.length >= 4 
+      ? reviewsWithImages.slice(0, 4) 
+      : [...reviewsWithImages, ...defaultImages.slice(0, 4 - reviewsWithImages.length)];
+    
+    // 첫 번째 이미지는 largeImage로 설정
+    if (finalImages.length > 0) {
+      finalImages[0].largeImage = true;
+    }
+    
+    setReviewImages(finalImages);
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-block px-4 py-1 rounded-full text-blue-700 bg-blue-100 text-sm font-medium mb-4">
+                TESTIMONIALS
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Thanks For TrueCar
+              </h2>
+              <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+                트루카 맞춤 중고차를 이용한 고객분들의 생생한 후기 입니다
+              </p>
+            </div>
+            
+            <div className="text-center py-12">
+              <p className="text-gray-500">후기를 불러오는 중...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 bg-white">
