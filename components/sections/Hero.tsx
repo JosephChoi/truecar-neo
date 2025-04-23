@@ -157,6 +157,7 @@ export function Hero() {
           </div>
           
           {/* 우측 신뢰도 지표 카드 (모바일에서는 숨김) */}
+          {/* 
           <div className="hidden md:flex items-center justify-center">
             <div className="bg-black/30 backdrop-blur-md p-6 rounded-xl border border-white/10 shadow-2xl max-w-md transform hover:scale-105 transition-all">
               <h3 className="text-white text-xl font-bold mb-5">
@@ -181,6 +182,7 @@ export function Hero() {
               </div>
             </div>
           </div>
+          */}
         </div>
       </div>
       
