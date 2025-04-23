@@ -20,23 +20,22 @@ export function Story() {
               <p className="text-xl text-gray-700 mb-6">
                 20년간 진행한 트루카의 이야기를 들려드립니다
               </p>
-              <div className="space-y-4 text-gray-600">
+              <div className="space-y-6 text-gray-600">
                 <div className="pl-4 border-l-2 border-blue-500">
-                  <p className="text-lg">
-                    한번 팔고 그만인 중고차는 허위매물 일 수 있지만
-                    평생을 함께 할 고객으로 대하면 거짓이
-                    있을 수 없습니다
+                  <p className="text-lg leading-relaxed">
+                    한번 팔고 그만인 중고차는 허위매물 일 수 있지만<br />
+                    평생을 함께 할 고객으로 대하면 거짓이 있을 수 없습니다
                   </p>
                 </div>
-                <p>
-                  20년간 단 한건의 불만접수가 없었던 TrueCar의 명성을 걸고
+                <p className="text-base leading-relaxed">
+                  20년간 단 한건의 불만접수가 없었던 TrueCar의 명성을 걸고<br />
                   만족을 약속드립니다
                 </p>
-                <p>
+                <p className="text-base leading-relaxed">
                   한분한분과 지킨 약속의 결과가 TrueCar의 Story가 되었습니다
                 </p>
-                <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                  <p className="font-medium text-gray-900 text-lg">
+                <div className="mt-6 bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                  <p className="font-medium text-gray-900 text-lg leading-relaxed text-center">
                     고객의 마음은 속일 수 없기에...<br />
                     TrueCar가 그 마음을 지킵니다
                   </p>
