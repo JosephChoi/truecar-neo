@@ -68,26 +68,34 @@ export default function ReviewPage() {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        
+
         // Supabase에서 리뷰 데이터 가져오기
         const { data, error } = await supabase
           .from('reviews')
           .select('*')
           .order('created_at', { ascending: false });
-          
+
         if (error) {
-          throw new Error('리뷰 데이터를 불러오지 못했습니다.');
+          // 에러 상세 출력
+          console.error('Supabase fetch error:', error);
+          setError('리뷰 데이터를 불러오지 못했습니다. 관리자에게 문의하세요.');
+          setReviews([]);
+          setLoading(false);
+          return;
         }
-        
+
         setReviews(data || []);
+        setError(null);
       } catch (err: any) {
-        console.error('리뷰 불러오기 오류:', err);
-        setError(err.message);
+        // 예외 상세 출력
+        console.error('리뷰 불러오기 예외:', err);
+        setError('리뷰 데이터를 불러오는 중 오류가 발생했습니다.');
+        setReviews([]);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchReviews();
   }, []);
 
@@ -123,8 +131,13 @@ export default function ReviewPage() {
                   <p className="text-gray-500">리뷰를 불러오는 중...</p>
                 </div>
               ) : error ? (
-                <div className="text-center py-12 text-red-500">
-                  <p>{error}</p>
+                <div className="text-center py-6 mb-8">
+                  <p className="text-orange-500 mb-2">{error}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                    {reviews.map((review) => (
+                      <ReviewCard key={review.id} review={review} />
+                    ))}
+                  </div>
                 </div>
               ) : reviews.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

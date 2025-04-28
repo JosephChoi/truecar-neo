@@ -11,6 +11,7 @@ interface ReviewImage {
   title: string;
   aspectRatio: string;
   largeImage: boolean;
+  isDefault: boolean; // 기본 이미지인지 여부
 }
 
 interface ReviewImageCardProps {
@@ -18,10 +19,45 @@ interface ReviewImageCardProps {
   imageUrl: string;
   title: string;
   isHovered: boolean;
+  isDefault: boolean; // 기본 이미지인지 여부
   onHover: (isHovered: boolean) => void;
 }
 
-function ReviewImageCard({ id, imageUrl, title, isHovered, onHover }: ReviewImageCardProps) {
+function ReviewImageCard({ id, imageUrl, title, isHovered, isDefault, onHover }: ReviewImageCardProps) {
+  // 기본 이미지면 직접 a 태그 사용, 실제 리뷰면 Link 컴포넌트 사용
+  if (isDefault) {
+    return (
+      <a 
+        href="/review"
+        className="block relative overflow-hidden rounded-lg shadow-md h-full"
+        onMouseEnter={() => onHover(true)}
+        onMouseLeave={() => onHover(false)}
+      >
+        <img 
+          src={imageUrl} 
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 ease-in-out"
+          style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+        />
+        
+        <div 
+          className={`absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent transition-opacity duration-300 flex items-end ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="p-4 md:p-6 text-white">
+            <h3 className="text-lg md:text-xl font-bold">{title}</h3>
+            <p className="text-sm mt-2 flex items-center">
+              더 많은 후기 보기
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </p>
+          </div>
+        </div>
+      </a>
+    );
+  }
+  
+  // 실제 리뷰 링크
   return (
     <Link 
       href={`/review/${id}`}
@@ -61,15 +97,34 @@ export function Reviews() {
   useEffect(() => {
     // Supabase에서 리뷰 데이터 가져오기
     const fetchReviews = async () => {
+      console.log('Supabase에서 리뷰 데이터 불러오기 시도...');
       try {
+        // 먼저 Supabase 연결 상태 확인
+        if (!supabase) {
+          console.error('Supabase 클라이언트가 초기화되지 않았습니다.');
+          throw new Error('데이터베이스 연결이 설정되지 않았습니다.');
+        }
+
+        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+        
+        // 요청 시도
         const { data, error } = await supabase
           .from('reviews')
           .select('*')
           .order('created_at', { ascending: false });
           
+        // 명시적 에러 로깅
         if (error) {
-          throw new Error('리뷰 데이터를 불러오지 못했습니다.');
+          console.error('Supabase 쿼리 에러:', error.message);
+          console.error('에러 세부 정보:', {
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
+          throw new Error(`리뷰 데이터를 불러오지 못했습니다: ${error.message}`);
         }
+        
+        console.log('리뷰 데이터 로드 성공:', data?.length || 0, '개 항목');
         
         // 이미지가 있는 리뷰만 필터링
         const reviewsWithImages = (data || [])
@@ -79,7 +134,8 @@ export function Reviews() {
             imageUrl: review.image_url || '',
             title: review.title,
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: false // 실제 리뷰는 기본 이미지가 아님
           }));
         
         // 최소 4개 항목 보장 (데이터가 부족한 경우 기본 이미지로 채움)
@@ -89,28 +145,32 @@ export function Reviews() {
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
             title: "안전한 중고차 거래, 큰 만족입니다",
             aspectRatio: "aspect-auto",
-            largeImage: true
+            largeImage: true,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default2",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
             title: "미니쿠퍼 드디어 구매 완료!",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default3",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
             title: "신차 같은 중고차 추천해주셔서 감사합니다",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default4",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
             title: "코다 SUV 구매 완료! 감사합니다",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           }
         ];
         
@@ -126,8 +186,9 @@ export function Reviews() {
         
         setReviewImages(finalImages);
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error('리뷰 데이터 로드 실패:', err);
+        console.error('오류 세부 정보:', err.stack || '스택 정보 없음');
         
         // 에러 발생 시 기본 이미지로 대체
         const defaultImages: ReviewImage[] = [
@@ -136,28 +197,32 @@ export function Reviews() {
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
             title: "안전한 중고차 거래, 큰 만족입니다",
             aspectRatio: "aspect-auto",
-            largeImage: true
+            largeImage: true,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default2",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
             title: "미니쿠퍼 드디어 구매 완료!",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default3",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
             title: "신차 같은 중고차 추천해주셔서 감사합니다",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           },
           {
             id: "default4",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
             title: "코다 SUV 구매 완료! 감사합니다",
             aspectRatio: "aspect-auto",
-            largeImage: false
+            largeImage: false,
+            isDefault: true // 기본 이미지임을 표시
           }
         ];
         
@@ -219,6 +284,7 @@ export function Reviews() {
                 imageUrl={reviewImages[0].imageUrl}
                 title={reviewImages[0].title}
                 isHovered={hoveredIndex === 0}
+                isDefault={reviewImages[0].isDefault}
                 onHover={(isHovered) => setHoveredIndex(isHovered ? 0 : null)}
               />
             </div>
@@ -231,6 +297,7 @@ export function Reviews() {
                   imageUrl={reviewImages[1].imageUrl}
                   title={reviewImages[1].title}
                   isHovered={hoveredIndex === 1}
+                  isDefault={reviewImages[1].isDefault}
                   onHover={(isHovered) => setHoveredIndex(isHovered ? 1 : null)}
                 />
               </div>
@@ -240,6 +307,7 @@ export function Reviews() {
                   imageUrl={reviewImages[2].imageUrl}
                   title={reviewImages[2].title}
                   isHovered={hoveredIndex === 2}
+                  isDefault={reviewImages[2].isDefault}
                   onHover={(isHovered) => setHoveredIndex(isHovered ? 2 : null)}
                 />
               </div>
@@ -249,6 +317,7 @@ export function Reviews() {
                   imageUrl={reviewImages[3].imageUrl}
                   title={reviewImages[3].title}
                   isHovered={hoveredIndex === 3}
+                  isDefault={reviewImages[3].isDefault}
                   onHover={(isHovered) => setHoveredIndex(isHovered ? 3 : null)}
                 />
               </div>
