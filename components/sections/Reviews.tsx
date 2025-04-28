@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAllReviews, initializeReviews, Review } from "@/lib/storage-utils";
+import { supabase } from "@/lib/supabase";
 
 // 고객 후기 이미지 카드 데이터 구조
 interface ReviewImage {
@@ -59,67 +59,114 @@ export function Reviews() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // localStorage 초기화
-    initializeReviews();
-    
-    // 후기 데이터 로드 및 이미지 카드용 데이터 준비
-    const loadedReviews = getAllReviews();
-    
-    // 이미지가 있는 리뷰만 필터링
-    const reviewsWithImages = loadedReviews
-      .filter(review => review.imageUrl)
-      .map(review => ({
-        id: review.id,
-        imageUrl: review.imageUrl || '',
-        title: review.title,
-        aspectRatio: "aspect-auto",
-        largeImage: false
-      }));
-    
-    // 최소 4개 항목 보장 (데이터가 부족한 경우 기본 이미지로 채움)
-    const defaultImages: ReviewImage[] = [
-      {
-        id: "default1",
-        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
-        title: "안전한 중고차 거래, 큰 만족입니다",
-        aspectRatio: "aspect-auto",
-        largeImage: true
-      },
-      {
-        id: "default2",
-        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
-        title: "미니쿠퍼 드디어 구매 완료!",
-        aspectRatio: "aspect-auto",
-        largeImage: false
-      },
-      {
-        id: "default3",
-        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
-        title: "신차 같은 중고차 추천해주셔서 감사합니다",
-        aspectRatio: "aspect-auto",
-        largeImage: false
-      },
-      {
-        id: "default4",
-        imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
-        title: "코다 SUV 구매 완료! 감사합니다",
-        aspectRatio: "aspect-auto",
-        largeImage: false
+    // Supabase에서 리뷰 데이터 가져오기
+    const fetchReviews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw new Error('리뷰 데이터를 불러오지 못했습니다.');
+        }
+        
+        // 이미지가 있는 리뷰만 필터링
+        const reviewsWithImages = (data || [])
+          .filter(review => review.image_url)
+          .map(review => ({
+            id: review.id,
+            imageUrl: review.image_url || '',
+            title: review.title,
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          }));
+        
+        // 최소 4개 항목 보장 (데이터가 부족한 경우 기본 이미지로 채움)
+        const defaultImages: ReviewImage[] = [
+          {
+            id: "default1",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
+            title: "안전한 중고차 거래, 큰 만족입니다",
+            aspectRatio: "aspect-auto",
+            largeImage: true
+          },
+          {
+            id: "default2",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
+            title: "미니쿠퍼 드디어 구매 완료!",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          },
+          {
+            id: "default3",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
+            title: "신차 같은 중고차 추천해주셔서 감사합니다",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          },
+          {
+            id: "default4",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
+            title: "코다 SUV 구매 완료! 감사합니다",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          }
+        ];
+        
+        // 실제 리뷰 이미지 + 필요한 만큼의 기본 이미지
+        const finalImages = reviewsWithImages.length >= 4 
+          ? reviewsWithImages.slice(0, 4) 
+          : [...reviewsWithImages, ...defaultImages.slice(0, 4 - reviewsWithImages.length)];
+        
+        // 첫 번째 이미지는 largeImage로 설정
+        if (finalImages.length > 0) {
+          finalImages[0].largeImage = true;
+        }
+        
+        setReviewImages(finalImages);
+        setLoading(false);
+      } catch (err) {
+        console.error('리뷰 데이터 로드 실패:', err);
+        
+        // 에러 발생 시 기본 이미지로 대체
+        const defaultImages: ReviewImage[] = [
+          {
+            id: "default1",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/bc0c4be6c9ec1.png",
+            title: "안전한 중고차 거래, 큰 만족입니다",
+            aspectRatio: "aspect-auto",
+            largeImage: true
+          },
+          {
+            id: "default2",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/64e8e8a5e7a97.png",
+            title: "미니쿠퍼 드디어 구매 완료!",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          },
+          {
+            id: "default3",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
+            title: "신차 같은 중고차 추천해주셔서 감사합니다",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          },
+          {
+            id: "default4",
+            imageUrl: "https://cdn.imweb.me/thumbnail/20240407/69e5fa8471c01.png",
+            title: "코다 SUV 구매 완료! 감사합니다",
+            aspectRatio: "aspect-auto",
+            largeImage: false
+          }
+        ];
+        
+        setReviewImages(defaultImages);
+        setLoading(false);
       }
-    ];
+    };
     
-    // 실제 리뷰 이미지 + 필요한 만큼의 기본 이미지
-    const finalImages = reviewsWithImages.length >= 4 
-      ? reviewsWithImages.slice(0, 4) 
-      : [...reviewsWithImages, ...defaultImages.slice(0, 4 - reviewsWithImages.length)];
-    
-    // 첫 번째 이미지는 largeImage로 설정
-    if (finalImages.length > 0) {
-      finalImages[0].largeImage = true;
-    }
-    
-    setReviewImages(finalImages);
-    setLoading(false);
+    fetchReviews();
   }, []);
 
   if (loading) {

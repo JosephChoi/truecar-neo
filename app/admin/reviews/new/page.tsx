@@ -5,67 +5,132 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ReviewForm from "@/components/admin/ReviewForm";
 import { useRouter } from "next/navigation";
-import { addReview, initializeReviews, getLocalStorageSize } from "@/lib/storage-utils";
+import { supabase } from '@/lib/supabase';
 
 export default function NewReviewPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [storageInfo, setStorageInfo] = useState<{size: number, available: boolean}>({ 
-    size: 0, 
-    available: true 
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 로컬스토리지 초기화
+  // Supabase 연결 확인
   useEffect(() => {
-    // 클라이언트 사이드에서만 실행
-    if (typeof window !== 'undefined') {
+    const checkConnection = async () => {
       try {
-        initializeReviews();
-        
-        // 로컬스토리지 사용량 확인
-        const sizeInKB = getLocalStorageSize();
-        const isStorageAvailable = sizeInKB < 4000; // 4MB 이하 여유 공간 확인
-        
-        setStorageInfo({
-          size: Math.round(sizeInKB), 
-          available: isStorageAvailable
-        });
-        
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("초기화 오류:", error);
-        setError("로컬스토리지 초기화 중 오류가 발생했습니다.");
+        setIsLoading(true);
+        const { data, error } = await supabase.from('reviews').select('count');
+        if (error) {
+          throw new Error(`Supabase 연결 오류: ${error.message}`);
+        }
+        console.log('Supabase 연결 성공:', data);
+      } catch (err: any) {
+        console.error('Supabase 연결 오류:', err);
+        setError(`데이터베이스 연결 중 오류가 발생했습니다: ${err.message}`);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    checkConnection();
   }, []);
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
+    setError(null);
     
-    // 로컬 스토리지에 리뷰 추가
     try {
-      // 필요한 경우 초기화
-      initializeReviews();
+      let imageUrl = null;
       
-      // 리뷰 데이터 준비 (id 추가)
-      const review = {
-        ...data,
-        id: Date.now().toString(),
+      // 이미지가 있는 경우 먼저 스토리지에 업로드
+      if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
+        try {
+          const uploadResult = await uploadImageToStorage(data.imageUrl);
+          imageUrl = uploadResult.url;
+          console.log('이미지 업로드 성공:', imageUrl);
+        } catch (imageError: any) {
+          console.error('이미지 업로드 실패:', imageError);
+          // 이미지 업로드 실패해도 계속 진행 (선택적으로 에러 처리 가능)
+        }
+      }
+      
+      // 리뷰 데이터 준비 - 테이블 구조에 맞게 데이터 포맷
+      const reviewData = {
+        title: data.title,
+        content: data.content,
+        rating: 5, // 기본값
+        status: 'approved', // 관리자가 작성하므로 바로 승인 상태
+        image_url: imageUrl, // 업로드된 이미지 URL
+        author: data.author, // 작성자 필드
+        date: data.date, // 작성일 필드
+        vehicle_type: data.orderDetail.vehicleType, // 차종 필드
+        budget: data.orderDetail.budget, // 예산 필드
+        mileage: data.orderDetail.mileage, // 주행거리 필드
+        preferred_color: data.orderDetail.preferredColor, // 선호색상 필드
+        repair_history: data.orderDetail.repairHistory, // 수리여부 필드
+        reference_site: data.orderDetail.referenceSite, // 참고 사이트 필드
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        metadata: {
+          system_version: "1.0",
+          admin_created: true
+        }
       };
       
-      // 리뷰 저장
-      addReview(review);
+      console.log('저장할 리뷰 데이터:', reviewData);
       
-      // 저장 후 리뷰 목록 페이지로 이동
-      router.push('/admin/reviews');
-    } catch (error) {
+      // Supabase에 저장
+      const { data: savedReview, error } = await supabase
+        .from('reviews')
+        .insert(reviewData)
+        .select()
+        .single();
+      
+      if (error) {
+        throw new Error(`데이터 저장 오류: ${error.message}`);
+      }
+      
+      console.log('리뷰 저장 성공:', savedReview);
+      
+      // 성공적으로 저장 후 리뷰 목록 페이지로 이동
+      alert('리뷰가 성공적으로 저장되었습니다.');
+      router.replace('/admin/reviews');
+    } catch (error: any) {
       console.error("리뷰 저장 실패:", error);
-      setError("리뷰를 저장하는 데 문제가 발생했습니다. 다시 시도해주세요.");
+      const errorMsg = error.message || "리뷰를 저장하는 데 문제가 발생했습니다. 다시 시도해주세요.";
+      setError(`리뷰 저장 실패: ${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // 이미지를 Supabase Storage에 업로드하는 함수
+  const uploadImageToStorage = async (dataUrl: string): Promise<{ url: string }> => {
+    // Base64 데이터 URL을 Blob으로 변환
+    const base64Data = dataUrl.split(',')[1];
+    const blob = await (await fetch(`data:image/jpeg;base64,${base64Data}`)).blob();
+    
+    // 파일명 생성 (고유한 ID 사용)
+    const fileName = `review-${Date.now()}.jpg`;
+    
+    // Supabase Storage에 업로드
+    const { data, error } = await supabase.storage
+      .from('review-images')
+      .upload(`reviews/${fileName}`, blob, { 
+        contentType: 'image/jpeg',
+        cacheControl: '3600'
+      });
+    
+    if (error) {
+      throw new Error(`이미지 업로드 오류: ${error.message}`);
+    }
+    
+    // 업로드된 이미지의 공개 URL 생성
+    const { data: publicUrlData } = supabase
+      .storage
+      .from('review-images')
+      .getPublicUrl(`reviews/${fileName}`);
+    
+    return { url: publicUrlData.publicUrl };
   };
 
   const handleCancel = () => {
@@ -94,30 +159,7 @@ export default function NewReviewPage() {
             </div>
           </div>
         </div>
-        
-        {/* 스토리지 상태 경고 */}
-        {isInitialized && !storageInfo.available && (
-          <div className="container mx-auto px-4 py-4 max-w-4xl">
-            <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    <strong>로컬스토리지 공간 부족 경고</strong> - 현재 사용량: {storageInfo.size}KB/5120KB
-                  </p>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    새 리뷰 저장이 실패할 수 있습니다. 관리 페이지에서 이전 리뷰를 일부 삭제하거나 이미지 크기를 최소화하세요.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
+                
         {/* 에러 메시지 표시 */}
         {error && (
           <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -136,10 +178,10 @@ export default function NewReviewPage() {
           </div>
         )}
         
-        {!isInitialized ? (
+        {isLoading ? (
           <div className="container mx-auto px-4 py-10 max-w-4xl">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden p-8 text-center">
-              <p className="text-gray-500">데이터를 초기화하는 중...</p>
+              <p className="text-gray-500">데이터베이스에 연결 중...</p>
             </div>
           </div>
         ) : (

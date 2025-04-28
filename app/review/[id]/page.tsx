@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ReviewDetail from "@/components/sections/ReviewDetail";
 import { notFound } from "next/navigation";
-import { getReviewById, incrementViews, initializeReviews } from "@/lib/storage-utils";
+import { supabase } from "@/lib/supabase";
 
 interface ReviewPageProps {
   params: {
@@ -30,31 +30,46 @@ export default function ReviewDetailPage({ params }: ReviewPageProps) {
     // 안전하게 데이터 로드
     const loadReviewData = async () => {
       try {
-        // localStorage 초기화
-        initializeReviews();
+        // Supabase에서 리뷰 데이터 가져오기
+        const { data, error: fetchError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('id', reviewId)
+          .single();
         
-        // ID 유효성 검증
-        if (isNaN(Number(reviewId))) {
-          setError("유효하지 않은 리뷰 ID입니다.");
-          setLoading(false);
-          return;
+        if (fetchError) {
+          throw new Error('리뷰를 찾을 수 없습니다.');
         }
         
-        // 리뷰 데이터 가져오기
-        const foundReview = getReviewById(reviewId);
-        
-        if (foundReview) {
-          setReview(foundReview);
-          // 조회수 증가
-          incrementViews(reviewId);
+        if (data) {
+          setReview(data);
+          
+          // 조회수 업데이트 
+          const { error: updateError } = await supabase
+            .from('reviews')
+            .update({ 
+              views: (data.views || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', reviewId);
+          
+          if (updateError) {
+            console.error('조회수 업데이트 실패:', updateError);
+          } else {
+            // 조회수가 성공적으로 업데이트되면 로컬 상태도 업데이트
+            setReview({
+              ...data,
+              views: (data.views || 0) + 1
+            });
+          }
         } else {
           setError("요청하신 리뷰를 찾을 수 없습니다.");
         }
         
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error("리뷰 로드 중 오류:", err);
-        setError("리뷰 데이터를 불러오는 중 오류가 발생했습니다.");
+        setError(err.message || "리뷰 데이터를 불러오는 중 오류가 발생했습니다.");
         setLoading(false);
       }
     };
@@ -139,11 +154,19 @@ export default function ReviewDetailPage({ params }: ReviewPageProps) {
           id={review.id}
           title={review.title}
           content={review.content}
-          author={review.author}
-          date={review.date}
-          imageUrl={review.imageUrl}
-          orderDetail={review.orderDetail}
-          isAdmin={false} // 실제 구현에서는 세션을 통해 관리자 여부를 확인합니다
+          author={review.author || "익명"}
+          date={review.date || new Date(review.created_at).toLocaleDateString()}
+          views={review.views || 0}
+          imageUrl={review.image_url || review.imageUrl}
+          orderDetail={{
+            vehicleType: review.vehicle_type || "",
+            budget: review.budget || "",
+            mileage: review.mileage || "",
+            preferredColor: review.preferred_color || "",
+            repairHistory: review.repair_history || "",
+            referenceSite: review.reference_site || "",
+          }}
+          isAdmin={false}
         />
       </main>
       <Footer />

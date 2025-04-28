@@ -21,6 +21,7 @@ interface ReviewDetailProps {
   content: string;
   author: string;
   date: string;
+  views?: number;
   imageUrl?: string;
   orderDetail?: OrderDetail;
   isAdmin?: boolean;
@@ -34,6 +35,7 @@ export default function ReviewDetail({
   content,
   author,
   date,
+  views = 0,
   imageUrl,
   orderDetail,
   isAdmin = false,
@@ -69,98 +71,93 @@ export default function ReviewDetail({
               <span>{date}</span>
             </div>
             
-            {isAdmin && (
-              <div className="flex space-x-2 mt-2 md:mt-0">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={onEdit}
-                >
-                  수정
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={onDelete}
-                >
-                  삭제
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center mt-2 md:mt-0">
+              <span className="text-gray-500">조회수: {views}</span>
+              {isAdmin && (
+                <div className="flex space-x-2 ml-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={onEdit}
+                  >
+                    수정
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={onDelete}
+                  >
+                    삭제
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* 이미지가 있는 경우, 주문 내역 위에 표시 */}
-        {displayImageUrl && (
-          <div className="p-6 md:p-8 border-b border-gray-200">
-            <div className="relative h-64 md:h-96 rounded-lg overflow-hidden">
-              <img 
-                src={displayImageUrl} 
-                alt={title}
-                className="object-contain w-full h-full"
-              />
-            </div>
-          </div>
-        )}
-        
-        {orderDetail && (
-          <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-lg font-bold mb-4">[ 주문내역 ]</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="text-gray-600 font-medium">차종</div>
-                  <div className="text-gray-900">{orderDetail.vehicleType}</div>
-                  
-                  <div className="text-gray-600 font-medium">구매 예산</div>
-                  <div className="text-gray-900">{orderDetail.budget}</div>
-                  
-                  <div className="text-gray-600 font-medium">주행거리</div>
-                  <div className="text-gray-900">{orderDetail.mileage}</div>
-                  
-                  <div className="text-gray-600 font-medium">선호색상</div>
-                  <div className="text-gray-900">{orderDetail.preferredColor}</div>
-                  
-                  <div className="text-gray-600 font-medium">수리여부</div>
-                  <div className="text-gray-900">{orderDetail.repairHistory}</div>
-                  
-                  <div className="text-gray-600 font-medium">참고 타 사이트</div>
-                  <div className="text-gray-900">{orderDetail.referenceSite}</div>
-                </div>
+        {/* 주문내역과 이미지를 좌우로 배치 (PC), 모바일에서는 세로 배치 */}
+        <div className="flex flex-col md:flex-row border-b border-gray-200 pb-4 pt-3">
+          {/* 주문내역 - 항상 먼저 표시 (모바일에서도 첫번째) */}
+          {orderDetail && (
+            <div className="w-full md:w-1/2 order-1 border border-gray-200 rounded-md overflow-hidden mx-6 md:ml-6 md:mr-3 mt-3">
+              <div className="bg-gray-100 py-2 px-4 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-800">[ 주문내역 ]</h2>
+              </div>
+              <div className="bg-white">
+                <table className="w-full border-collapse">
+                  <tbody>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">차종</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.vehicleType}</td>
+                    </tr>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">구매 예산</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.budget}</td>
+                    </tr>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">주행거리</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.mileage}</td>
+                    </tr>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">선호색상</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.preferredColor}</td>
+                    </tr>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">수리여부</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.repairHistory}</td>
+                    </tr>
+                    <tr>
+                      <th className="px-4 py-2 text-left text-gray-700 font-bold w-2/5">참고 타 사이트</th>
+                      <td className="px-4 py-2 text-gray-900">{orderDetail.referenceSite}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
-        )}
+          )}
+          
+          {/* 이미지 - PC에서는 오른쪽, 모바일에서는 주문내역 아래 */}
+          {displayImageUrl && (
+            <div className="py-3 px-6 md:px-5 w-full md:w-1/2 order-2 flex items-center justify-center md:mr-6 md:ml-3 mt-4 md:mt-0">
+              <div className="relative w-full h-72 md:h-80 rounded-lg overflow-hidden">
+                <img 
+                  src={displayImageUrl} 
+                  alt={title}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
         
-        <div className="p-6 md:p-8">
+        {/* 본문 내용 */}
+        <div className="p-6 md:p-8 mt-3">
           <div className="prose max-w-none">
             {paragraphs.map((paragraph, index) => (
-              <p key={index} className="mb-4 text-gray-800 text-lg leading-relaxed">
+              <p key={index} className="mb-4 text-gray-700 text-base leading-relaxed">
                 {paragraph}
               </p>
             ))}
-          </div>
-        </div>
-        
-        <div className="p-6 md:p-8 bg-gray-50 flex justify-between items-center border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            조회수: 8
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button className="flex items-center text-gray-600 hover:text-blue-600">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-5 w-5 mr-1" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>0</span>
-            </button>
           </div>
         </div>
       </div>

@@ -16,9 +16,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import { convertFormDataToOrderDetail, OrderFormData } from "@/lib/order-utils";
 
 export function OrderForm() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<OrderFormData>({
     name: "",
     email: "",
     phone: "",
@@ -54,6 +55,10 @@ export function OrderForm() {
     setSubmitStatus({});
     
     try {
+      // OrderDetail 형식으로 변환
+      const orderDetail = convertFormDataToOrderDetail(formData);
+      console.log("변환된 주문 상세 정보:", orderDetail);
+      
       // 구글 스프레드시트의 웹앱 URL
       const googleScriptUrl = "https://script.google.com/macros/s/AKfycbwb7veDwHZMRa7JuuPO97V2P5i36OD5R24kpF-XtOHi801WsnbjQ9x_seuS2Eh8BxQMcQ/exec";
       
@@ -229,11 +234,11 @@ export function OrderForm() {
                       onChange={handleChange}
                       className="h-12 w-full rounded-md border border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-3"
                     >
+                      <option value="관계없음">관계없음</option>
                       <option value="흰색">흰색</option>
                       <option value="검정색">검정색</option>
                       <option value="은색(회색)">은색(회색)</option>
                       <option value="파란색(남색)">파란색(남색)</option>
-                      <option value="관계없음">관계없음</option>
                     </select>
                   </div>
                   

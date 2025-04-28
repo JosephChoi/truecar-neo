@@ -6,11 +6,11 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import Image from "next/image";
-import { getAllReviews, initializeReviews } from "@/lib/storage-utils";
+import { supabase } from '@/lib/supabase';
 
 function ReviewCard({ review }: { review: any }) {
   // 이미지 URL 결정 (리뷰 직접 이미지 또는 주문 내역 이미지)
-  const imageUrl = review.imageUrl || (review.orderDetail?.imageUrl);
+  const imageUrl = review.image_url || review.imageUrl || (review.metadata?.imageUrl);
 
   return (
     <Link href={`/review/${review.id}`} className="block h-full">
@@ -37,10 +37,10 @@ function ReviewCard({ review }: { review: any }) {
           
           {/* 콘텐츠 영역 */}
           <CardContent className="p-4 flex flex-col flex-grow">
-            {review.orderDetail && (
+            {review.vehicle_type && (
               <div className="mb-2">
                 <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                  {review.orderDetail.vehicleType}
+                  {review.vehicle_type}
                 </span>
               </div>
             )}
@@ -48,9 +48,9 @@ function ReviewCard({ review }: { review: any }) {
             <h2 className="text-lg font-bold mb-3 line-clamp-2 text-gray-900">{review.title}</h2>
             
             <div className="flex items-center mt-auto text-xs text-gray-500">
-              <span>{review.author}</span>
+              <span>{review.author || '익명'}</span>
               <span className="mx-2">•</span>
-              <span>{review.date}</span>
+              <span>{review.date || new Date(review.created_at).toLocaleDateString()}</span>
             </div>
           </CardContent>
         </div>
@@ -62,15 +62,33 @@ function ReviewCard({ review }: { review: any }) {
 export default function ReviewPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // localStorage 초기화 (최초 접근 시 기본 데이터 설정)
-    initializeReviews();
+    const fetchReviews = async () => {
+      try {
+        setLoading(true);
+        
+        // Supabase에서 리뷰 데이터 가져오기
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw new Error('리뷰 데이터를 불러오지 못했습니다.');
+        }
+        
+        setReviews(data || []);
+      } catch (err: any) {
+        console.error('리뷰 불러오기 오류:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // 리뷰 데이터 로드
-    const loadedReviews = getAllReviews();
-    setReviews(loadedReviews);
-    setLoading(false);
+    fetchReviews();
   }, []);
 
   return (
@@ -103,6 +121,10 @@ export default function ReviewPage() {
               {loading ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500">리뷰를 불러오는 중...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-500">
+                  <p>{error}</p>
                 </div>
               ) : reviews.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import ReviewForm from "@/components/admin/ReviewForm";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { getReviewById, updateReview, initializeReviews } from "@/lib/storage-utils";
+import { supabase } from "@/lib/supabase";
 
 interface EditReviewPageProps {
   params: {
@@ -26,107 +26,145 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 안전하게 클라이언트 사이드에서 데이터 로드
-  const safelyLoadReview = () => {
-    try {
-      // localStorage 초기화
-      initializeReviews();
-      
-      // ID 유효성 검증 - 숫자인지 확인
-      if (isNaN(Number(reviewId))) {
-        setError("유효하지 않은 리뷰 ID입니다.");
-        setLoading(false);
-        return;
-      }
-      
-      // 로컬스토리지에서 리뷰 데이터 가져오기
-      const foundReview = getReviewById(reviewId);
-      
-      if (foundReview) {
-        // ReviewForm 컴포넌트에 맞게 데이터 형식을 변환합니다.
-        setReview({
-          title: foundReview.title || "",
-          content: foundReview.content || "",
-          author: foundReview.author || "",
-          date: foundReview.date || new Date().toISOString().split('T')[0],
-          imageUrl: foundReview.imageUrl || "",
-          orderDetail: foundReview.orderDetail || {
-            vehicleType: "",
-            budget: "",
-            mileage: "",
-            preferredColor: "",
-            repairHistory: "",
-            referenceSite: ""
-          }
-        });
-      } else {
-        setError("리뷰를 찾을 수 없습니다.");
-      }
-      
-      setLoading(false);
-    } catch (err) {
-      console.error("리뷰 로드 중 오류:", err);
-      setError("리뷰 데이터를 불러오는 중 오류가 발생했습니다.");
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     // 클라이언트 사이드에서만 실행
     if (typeof window === 'undefined') return;
     
-    // 브라우저 환경에서 실행될 때만 로컬스토리지 접근
-    safelyLoadReview();
+    // Supabase에서 리뷰 데이터 가져오기
+    const fetchReview = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error: fetchError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('id', reviewId)
+          .single();
+        
+        if (fetchError) {
+          throw new Error('리뷰를 찾을 수 없습니다.');
+        }
+        
+        if (data) {
+          // ReviewForm 컴포넌트에 맞게 데이터 형식을 변환합니다.
+          setReview({
+            title: data.title || "",
+            content: data.content || "",
+            author: data.author || "",
+            date: data.date || data.created_at?.slice(0, 10) || new Date().toISOString().split('T')[0],
+            imageUrl: data.image_url || "",
+            orderDetail: {
+              vehicleType: data.vehicle_type || "",
+              budget: data.budget || "",
+              mileage: data.mileage || "",
+              preferredColor: data.preferred_color || "",
+              repairHistory: data.repair_history || "",
+              referenceSite: data.reference_site || ""
+            }
+          });
+        } else {
+          setError("리뷰를 찾을 수 없습니다.");
+        }
+        
+        setLoading(false);
+      } catch (err: any) {
+        console.error("리뷰 로드 중 오류:", err);
+        setError(err.message || "리뷰 데이터를 불러오는 중 오류가 발생했습니다.");
+        setLoading(false);
+      }
+    };
+    
+    fetchReview();
   }, [reviewId]);
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
     setError(null);
     
     try {
-      // 이미지 URL 길이 체크
-      if (data.imageUrl && data.imageUrl.length > 1024 * 1024) { // 1MB 이상
-        setError("이미지 크기가 너무 큽니다. 다른 이미지를 사용하거나 품질을 더 낮추어 시도해보세요.");
-        setIsSubmitting(false);
-        return;
+      // 이미지 URL 처리
+      let imageUrl = data.imageUrl;
+      
+      // 새로운 이미지가 업로드된 경우 스토리지에 저장
+      if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
+        try {
+          const uploadResult = await uploadImageToStorage(data.imageUrl);
+          imageUrl = uploadResult.url;
+          console.log('이미지 업로드 성공:', imageUrl);
+        } catch (imageError: any) {
+          console.error('이미지 업로드 실패:', imageError);
+        }
       }
       
-      // 리뷰 데이터 형식 변환
-      const reviewToUpdate = {
+      // 리뷰 데이터 구성
+      const reviewData = {
         title: data.title,
         content: data.content,
         author: data.author,
         date: data.date,
-        imageUrl: data.imageUrl,
-        orderDetail: {
-          vehicleType: data.orderDetail.vehicleType || "",
-          budget: data.orderDetail.budget || "",
-          mileage: data.orderDetail.mileage || "",
-          preferredColor: data.orderDetail.preferredColor || "",
-          repairHistory: data.orderDetail.repairHistory || "",
-          referenceSite: data.orderDetail.referenceSite || ""
-        }
+        image_url: imageUrl, // 수정: imageUrl -> image_url (Supabase 컬럼명)
+        vehicle_type: data.orderDetail.vehicleType,
+        budget: data.orderDetail.budget,
+        mileage: data.orderDetail.mileage,
+        preferred_color: data.orderDetail.preferredColor,
+        repair_history: data.orderDetail.repairHistory,
+        reference_site: data.orderDetail.referenceSite,
+        updated_at: new Date().toISOString()
       };
       
-      console.log("리뷰 업데이트 데이터:", reviewToUpdate);
+      console.log("리뷰 업데이트 데이터:", reviewData);
       
-      // 로컬 스토리지에서 리뷰 업데이트
-      const result = updateReview(reviewId, reviewToUpdate);
+      // Supabase에 리뷰 업데이트
+      const { data: updatedReview, error: updateError } = await supabase
+        .from('reviews')
+        .update(reviewData)
+        .eq('id', reviewId)
+        .select()
+        .single();
       
-      if (!result) {
-        throw new Error("리뷰 수정에 실패했습니다.");
+      if (updateError) {
+        throw new Error(`리뷰 수정 오류: ${updateError.message}`);
       }
       
       // 저장 후 관리 페이지로 이동
-      router.push("/admin/reviews");
-    } catch (error) {
+      alert('리뷰가 성공적으로 수정되었습니다.');
+      router.replace("/admin/reviews");
+    } catch (error: any) {
       console.error("리뷰 수정 중 오류:", error);
-      setError(typeof error === 'object' && error !== null && 'message' in error 
-        ? (error as Error).message 
-        : "리뷰 수정 중 오류가 발생했습니다.");
+      setError(error.message || "리뷰 수정 중 오류가 발생했습니다.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // 이미지를 Supabase Storage에 업로드하는 함수
+  const uploadImageToStorage = async (dataUrl: string): Promise<{ url: string }> => {
+    // Base64 데이터 URL을 Blob으로 변환
+    const base64Data = dataUrl.split(',')[1];
+    const blob = await (await fetch(`data:image/jpeg;base64,${base64Data}`)).blob();
+    
+    // 파일명 생성 (고유한 ID 사용)
+    const fileName = `review-${Date.now()}.jpg`;
+    
+    // Supabase Storage에 업로드
+    const { data, error } = await supabase.storage
+      .from('review-images')
+      .upload(`reviews/${fileName}`, blob, { 
+        contentType: 'image/jpeg',
+        cacheControl: '3600'
+      });
+    
+    if (error) {
+      throw new Error(`이미지 업로드 오류: ${error.message}`);
+    }
+    
+    // 업로드된 이미지의 공개 URL 생성
+    const { data: publicUrlData } = supabase
+      .storage
+      .from('review-images')
+      .getPublicUrl(`reviews/${fileName}`);
+    
+    return { url: publicUrlData.publicUrl };
   };
 
   const handleCancel = () => {
