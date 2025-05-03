@@ -39,6 +39,16 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
 let supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'truecar-neo'
+    },
+  },
+  db: {
+    schema: 'public'
   }
 });
 

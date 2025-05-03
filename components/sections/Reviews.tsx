@@ -98,47 +98,16 @@ export function Reviews() {
     // Supabase에서 리뷰 데이터 가져오기
     const fetchReviews = async () => {
       console.log('Supabase에서 리뷰 데이터 불러오기 시도...');
+      
+      // 환경 변수 디버깅 - 값까지 일부 확인 (보안을 위해 전체 값은 출력하지 않음)
+      console.log('환경 변수 체크:');
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      console.log('NEXT_PUBLIC_SUPABASE_URL:', url ? `${url.substring(0, 10)}...` : '설정되지 않음');
+      console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', key ? `${key.substring(0, 5)}...` : '설정되지 않음');
+      
       try {
-        // 먼저 Supabase 연결 상태 확인
-        if (!supabase) {
-          console.error('Supabase 클라이언트가 초기화되지 않았습니다.');
-          throw new Error('데이터베이스 연결이 설정되지 않았습니다.');
-        }
-
-        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-        
-        // 요청 시도
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        // 명시적 에러 로깅
-        if (error) {
-          console.error('Supabase 쿼리 에러:', error.message);
-          console.error('에러 세부 정보:', {
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-          });
-          throw new Error(`리뷰 데이터를 불러오지 못했습니다: ${error.message}`);
-        }
-        
-        console.log('리뷰 데이터 로드 성공:', data?.length || 0, '개 항목');
-        
-        // 이미지가 있는 리뷰만 필터링
-        const reviewsWithImages = (data || [])
-          .filter(review => review.image_url)
-          .map(review => ({
-            id: review.id,
-            imageUrl: review.image_url || '',
-            title: review.title,
-            aspectRatio: "aspect-auto",
-            largeImage: false,
-            isDefault: false // 실제 리뷰는 기본 이미지가 아님
-          }));
-        
-        // 최소 4개 항목 보장 (데이터가 부족한 경우 기본 이미지로 채움)
+        // 기본 이미지 미리 정의
         const defaultImages: ReviewImage[] = [
           {
             id: "default1",
@@ -160,7 +129,7 @@ export function Reviews() {
             id: "default3",
             imageUrl: "https://cdn.imweb.me/thumbnail/20240407/dac9242bf16b4.png",
             title: "신차 같은 중고차 추천해주셔서 감사합니다",
-            aspectRatio: "aspect-auto",
+            aspectRatio: "aspect-auto", 
             largeImage: false,
             isDefault: true // 기본 이미지임을 표시
           },
@@ -173,6 +142,71 @@ export function Reviews() {
             isDefault: true // 기본 이미지임을 표시
           }
         ];
+        
+        // Supabase 연결 상태 확인
+        if (!supabase) {
+          console.error('Supabase 클라이언트가 초기화되지 않았습니다.');
+          setReviewImages(defaultImages);
+          setLoading(false);
+          return;
+        }
+        
+        // 환경 변수가 없을 경우 기본 이미지 사용
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          console.warn('Supabase 환경 변수가 설정되지 않아 기본 이미지를 사용합니다.');
+          setReviewImages(defaultImages);
+          setLoading(false);
+          return;
+        }
+
+        // Supabase 클라이언트 정보 디버깅
+        console.log('Supabase 클라이언트 초기화됨:', !!supabase);
+        
+        // 요청 시도 전 로그
+        console.log('리뷰 데이터 쿼리 시작...');
+        
+        // 요청 시도 (catch 블록으로 오류를 더 잘 포착하기 위해 타임아웃 추가)
+        const fetchWithTimeout = async () => {
+          const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Supabase 쿼리 타임아웃')), 5000);
+          });
+          
+          const response = await Promise.race([
+            supabase.from('reviews').select('*').order('created_at', { ascending: false }),
+            timeout
+          ]);
+          
+          return response as any;
+        };
+        
+        const { data, error } = await fetchWithTimeout();
+        
+        // 명시적 에러 로깅
+        if (error) {
+          console.error('Supabase 쿼리 에러:', error.message);
+          console.error('에러 세부 정보:', {
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
+          throw new Error(`리뷰 데이터를 불러오지 못했습니다: ${error.message}`);
+        }
+        
+        // 데이터 확인
+        console.log('리뷰 데이터 응답:', data);
+        console.log('리뷰 데이터 로드 성공:', data?.length || 0, '개 항목');
+        
+        // 이미지가 있는 리뷰만 필터링
+        const reviewsWithImages = (data || [])
+          .filter(review => review.image_url)
+          .map(review => ({
+            id: review.id,
+            imageUrl: review.image_url || '',
+            title: review.title,
+            aspectRatio: "aspect-auto",
+            largeImage: false,
+            isDefault: false // 실제 리뷰는 기본 이미지가 아님
+          }));
         
         // 실제 리뷰 이미지 + 필요한 만큼의 기본 이미지
         const finalImages = reviewsWithImages.length >= 4 
@@ -190,6 +224,7 @@ export function Reviews() {
         console.error('리뷰 데이터 로드 실패:', err);
         console.error('오류 세부 정보:', err.stack || '스택 정보 없음');
         
+        console.log('기본 이미지로 대체합니다.');
         // 에러 발생 시 기본 이미지로 대체
         const defaultImages: ReviewImage[] = [
           {
