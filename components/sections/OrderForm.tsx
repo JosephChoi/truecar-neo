@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { convertFormDataToOrderDetail, OrderFormData } from "@/lib/order-utils";
+import { useRouter } from "next/navigation";
 
 export function OrderForm() {
   const [formData, setFormData] = useState<OrderFormData>({
@@ -38,6 +39,7 @@ export function OrderForm() {
     message?: string;
   }>({});
   const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -344,7 +346,12 @@ export function OrderForm() {
             <DialogFooter className="mt-4">
               <Button 
                 type="button" 
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  if (submitStatus.success) {
+                    router.push('/');
+                  }
+                }}
                 className="w-full sm:w-auto"
               >
                 확인
