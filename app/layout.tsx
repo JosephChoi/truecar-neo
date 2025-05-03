@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "트루카 - 주문형 중고차 서비스",
   description: "중고차를 사는 새로운 방법, 트루카 주문형 중고차 서비스",
+  icons: {
+    icon: "/images/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -24,6 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
