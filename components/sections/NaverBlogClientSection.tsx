@@ -115,40 +115,34 @@ export default function NaverBlogClientSection({ blogId }: { blogId: string }) {
       </div>
       
       {blogPosts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
-          {blogPosts.slice(0, 4).map((post, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
+          {blogPosts.slice(0, 6).map((post, index) => (
             <a 
               key={index} 
               href={post.link} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl group transition-all duration-300 flex flex-col h-full transform hover:-translate-y-2"
+              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl group transition-all duration-300 flex flex-col h-full transform hover:-translate-y-2 min-h-[260px]"
+              style={{ maxWidth: '100%', minWidth: 0 }}
             >
-              <div className="h-36 bg-gradient-to-r from-blue-400 to-indigo-500 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center text-white font-medium">
-                  <div className="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-45 transition-transform duration-300">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M8 12h8"></path>
-                      <path d="M12 8v8"></path>
-                    </svg>
-                  </div>
+              <div className="h-24 flex items-center justify-center bg-gradient-to-r from-blue-400 to-indigo-500">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                  <span className="text-green-600 font-bold text-lg select-none">트루카</span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              <div className="p-5 flex-grow flex flex-col min-h-[180px]">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-500">{post.date}</span>
+              <div className="p-4 flex-grow flex flex-col min-h-[120px]">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs text-gray-500">{post.date}</span>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-300">
+                <h3 className="text-base font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
                   {post.title}
                 </h3>
-                <p className="text-gray-700 mb-4 text-sm flex-grow">
+                <p className="text-gray-700 mb-2 text-xs flex-grow line-clamp-3">
                   {post.summary}
                 </p>
-                <div className="text-blue-600 font-medium hover:underline inline-flex items-center text-sm mt-auto group-hover:translate-x-1 transition-transform duration-300">
+                <div className="text-blue-600 font-medium hover:underline inline-flex items-center text-xs mt-auto group-hover:translate-x-1 transition-transform duration-300">
                   자세히 보기
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 group-hover:ml-2 transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 group-hover:ml-2 transition-all duration-300">
                     <path d="M5 12h14"></path>
                     <path d="m12 5 7 7-7 7"></path>
                   </svg>

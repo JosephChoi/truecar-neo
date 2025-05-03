@@ -36,20 +36,18 @@ export async function GET(request: Request) {
     // 블로그 정보 추출
     const items = result.rss.channel[0].item;
     
-    // 최신 5개 포스트만 가져오기
-    const posts = items.slice(0, 4).map((item: any) => {
+    // 모든 포스트 반환
+    const posts = items.map((item: any) => {
       // HTML 태그 제거 함수
       const stripHtml = (html: string) => {
         return html.replace(/<\/?[^>]+(>|$)/g, "");
       };
-      
       // 요약 텍스트 생성
       const rawDescription = item.description?.[0] || '';
       const cleanDescription = stripHtml(rawDescription);
       const summary = cleanDescription.length > 150 
         ? cleanDescription.substring(0, 150) + "..." 
         : cleanDescription;
-      
       return {
         title: item.title?.[0] || '제목 없음',
         summary,
