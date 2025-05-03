@@ -8,6 +8,7 @@ export default function StoryPage() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow">
+        <SpecialistTeam />
         <section className="py-16 bg-gradient-to-br from-blue-50 to-gray-50 relative overflow-hidden">
           {/* 배경 장식 요소 */}
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-100 rounded-full opacity-30 blur-3xl"></div>
@@ -29,7 +30,6 @@ export default function StoryPage() {
         </section>
         
         <Timeline />
-        <SpecialistTeam />
       </main>
       <Footer />
     </div>
