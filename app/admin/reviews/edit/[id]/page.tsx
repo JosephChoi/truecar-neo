@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { use } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ReviewForm from "@/components/admin/ReviewForm";
@@ -9,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+// Next.js 15 App Router에 맞게 Props 타입 정의
 interface EditReviewPageProps {
   params: {
     id: string;
@@ -16,9 +16,8 @@ interface EditReviewPageProps {
 }
 
 export default function EditReviewPage({ params }: EditReviewPageProps) {
-  // React.use로 params를 언래핑
-  const unwrappedParams = use(params as any) as { id: string };
-  const reviewId = unwrappedParams.id;
+  // 직접 params 사용 - use 함수 없이
+  const reviewId = params.id;
   
   const router = useRouter();
   const [review, setReview] = useState<any>(null);
