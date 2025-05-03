@@ -1,15 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-// 환경 변수 확인 및 디버깅
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// 환경 변수 확인 및 디버깅 (빌드 시 에러 방지를 위한 기본값 제공)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-supabase-project.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-placeholder';
 
-// 환경 변수가 없을 경우 명확한 오류 메시지
-if (typeof window !== 'undefined') {  // 클라이언트 사이드에서만 체크
-  if (!supabaseUrl || !supabaseAnonKey) {
+// 환경 변수 경고 메시지 (클라이언트 사이드에서만)
+if (typeof window !== 'undefined') {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.error('⚠️ Supabase 환경 변수가 설정되지 않았습니다!', { 
-      url: supabaseUrl ? '설정됨' : '없음', 
-      key: supabaseAnonKey ? '설정됨' : '없음' 
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL ? '설정됨' : '없음', 
+      key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '설정됨' : '없음' 
     });
     console.warn('⚠️ Supabase 연결에 필요한 환경 변수가 없습니다. .env.local 파일을 확인하세요.');
     
@@ -25,29 +25,22 @@ if (typeof window !== 'undefined') {  // 클라이언트 사이드에서만 체�
   }
 }
 
-// 안전하게 Supabase 클라이언트 생성
-// 확인을 위한 기본값 사용 (실제 작동하지 않음)
-const fallbackUrl = 'https://placeholder-url.supabase.co';
-const fallbackKey = 'placeholder-key-for-security-reasons-this-will-not-work';
-
-// 실제 URL 값 확인 (개발 시에만 활성화)
+// 개발 시에만 URL 값 확인
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // URL의 첫 10자와 마지막 5자만 표시 (보안)
-  const safeUrlDisplay = supabaseUrl 
-    ? `${supabaseUrl.substring(0, 10)}...${supabaseUrl.substring(supabaseUrl.length - 5)}`
+  const safeUrlDisplay = process.env.NEXT_PUBLIC_SUPABASE_URL 
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 10)}...${process.env.NEXT_PUBLIC_SUPABASE_URL.substring(process.env.NEXT_PUBLIC_SUPABASE_URL.length - 5)}`
     : '없음';
   console.log('Supabase URL (일부): ', safeUrlDisplay);
-  console.log('Supabase Key available:', !!supabaseAnonKey);
+  console.log('Supabase Key available:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 // 싱글턴 패턴 적용
-let supabase: ReturnType<typeof createClient>
-
-if (!(globalThis as any).supabase) {
-  (globalThis as any).supabase = createClient(supabaseUrl, supabaseAnonKey)
-}
-
-supabase = (globalThis as any).supabase
+let supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+  }
+});
 
 export { supabase }
 
@@ -55,8 +48,9 @@ export { supabase }
 export const testSupabaseConnection = async () => {
   try {
     console.log('Supabase 연결 테스트 시작...');
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('환경 변수가 설정되지 않았습니다');
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.warn('환경 변수가 설정되지 않았습니다. 실제 연결은 작동하지 않을 수 있습니다.');
+      return false;
     }
     
     const { data, error } = await supabase
