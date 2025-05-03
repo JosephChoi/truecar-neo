@@ -11,100 +11,118 @@ export default function NewReviewPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Supabase 연결 확인
+  // 관리자 권한 확인
   useEffect(() => {
-    const checkConnection = async () => {
+    const checkAdminStatus = async () => {
       try {
-        setIsLoading(true);
-        const { data, error } = await supabase.from('reviews').select('count');
-        if (error) {
-          throw new Error(`Supabase 연결 오류: ${error.message}`);
+        // 세션 확인
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // 로그인되지 않은 경우 로그인 페이지로 리디렉션
+          console.log('세션 없음: 로그인 페이지로 이동');
+          router.replace('/admin/login');
+          return;
         }
-        console.log('Supabase 연결 성공:', data);
-      } catch (err: any) {
-        console.error('Supabase 연결 오류:', err);
-        setError(`데이터베이스 연결 중 오류가 발생했습니다: ${err.message}`);
+        
+        // 관리자 권한 확인
+        const { data: adminUser, error: adminError } = await supabase
+          .from('admin_users')
+          .select('email')
+          .eq('email', session.user.email)
+          .single();
+          
+        if (adminError || !adminUser) {
+          // 관리자가 아닌 경우 로그인 페이지로 리디렉션
+          console.error('관리자 권한 없음:', adminError);
+          await supabase.auth.signOut();
+          router.replace('/admin/login?unauthorized=true');
+          return;
+        }
+        
+        // 관리자 확인됨
+        setIsAdmin(true);
+      } catch (err) {
+        console.error('인증 확인 중 오류:', err);
+        setError('인증 정보를 확인하는 중 오류가 발생했습니다.');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    checkConnection();
-  }, []);
+    
+    checkAdminStatus();
+  }, [router]);
 
   const handleSubmit = async (data: any) => {
+    if (!isAdmin) {
+      alert('관리자 권한이 필요합니다.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
     
     try {
-      let imageUrl = null;
+      // 이미지 URL 처리
+      let imageUrl = data.imageUrl;
       
-      // 이미지가 있는 경우 먼저 스토리지에 업로드
+      // 새로운 이미지가 업로드된 경우 스토리지에 저장
       if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
         try {
-          const uploadResult = await uploadImageToStorage(data.imageUrl);
+          const uploadResult = await uploadImage(data.imageUrl);
           imageUrl = uploadResult.url;
           console.log('이미지 업로드 성공:', imageUrl);
         } catch (imageError: any) {
           console.error('이미지 업로드 실패:', imageError);
-          // 이미지 업로드 실패해도 계속 진행 (선택적으로 에러 처리 가능)
         }
       }
       
-      // 리뷰 데이터 준비 - 테이블 구조에 맞게 데이터 포맷
+      // 리뷰 데이터 구성
       const reviewData = {
         title: data.title,
         content: data.content,
-        rating: 5, // 기본값
-        status: 'approved', // 관리자가 작성하므로 바로 승인 상태
-        image_url: imageUrl, // 업로드된 이미지 URL
-        author: data.author, // 작성자 필드
-        date: data.date, // 작성일 필드
-        vehicle_type: data.orderDetail.vehicleType, // 차종 필드
-        budget: data.orderDetail.budget, // 예산 필드
-        mileage: data.orderDetail.mileage, // 주행거리 필드
-        preferred_color: data.orderDetail.preferredColor, // 선호색상 필드
-        repair_history: data.orderDetail.repairHistory, // 수리여부 필드
-        reference_site: data.orderDetail.referenceSite, // 참고 사이트 필드
+        rating: 5, // 기본값 설정
+        author: data.author,
+        date: data.date,
+        image_url: imageUrl,
+        status: 'approved', // 관리자가 생성한 리뷰는 자동 승인
+        vehicle_type: data.orderDetail.vehicleType,
+        budget: data.orderDetail.budget,
+        mileage: data.orderDetail.mileage,
+        preferred_color: data.orderDetail.preferredColor,
+        repair_history: data.orderDetail.repairHistory,
+        reference_site: data.orderDetail.referenceSite,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        metadata: {
-          system_version: "1.0",
-          admin_created: true
-        }
+        updated_at: new Date().toISOString()
       };
       
-      console.log('저장할 리뷰 데이터:', reviewData);
-      
-      // Supabase에 저장
-      const { data: savedReview, error } = await supabase
+      // Supabase에 리뷰 저장
+      const { data: newReview, error: insertError } = await supabase
         .from('reviews')
-        .insert(reviewData)
+        .insert([reviewData])
         .select()
         .single();
       
-      if (error) {
-        throw new Error(`데이터 저장 오류: ${error.message}`);
+      if (insertError) {
+        throw new Error(`리뷰 작성 오류: ${insertError.message}`);
       }
       
-      console.log('리뷰 저장 성공:', savedReview);
-      
-      // 성공적으로 저장 후 리뷰 목록 페이지로 이동
+      // 저장 후 관리 페이지로 이동
       alert('리뷰가 성공적으로 저장되었습니다.');
-      router.replace('/admin/reviews');
+      router.replace("/admin/reviews");
     } catch (error: any) {
-      console.error("리뷰 저장 실패:", error);
-      const errorMsg = error.message || "리뷰를 저장하는 데 문제가 발생했습니다. 다시 시도해주세요.";
-      setError(`리뷰 저장 실패: ${errorMsg}`);
+      console.error("리뷰 저장 중 오류:", error);
+      setError(error.message || "리뷰 저장 중 오류가 발생했습니다.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // 이미지를 Supabase Storage에 업로드하는 함수
-  const uploadImageToStorage = async (dataUrl: string): Promise<{ url: string }> => {
+  
+  // 이미지를 스토리지에 업로드하는 함수
+  const uploadImage = async (dataUrl: string): Promise<{ url: string }> => {
     // Base64 데이터 URL을 Blob으로 변환
     const base64Data = dataUrl.split(',')[1];
     const blob = await (await fetch(`data:image/jpeg;base64,${base64Data}`)).blob();
@@ -137,6 +155,42 @@ export default function NewReviewPage() {
     router.push("/admin/reviews");
   };
 
+  // 로딩 중이거나 관리자가 아닌 경우 적절한 UI 표시
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">접근 권한 없음</h2>
+            <p className="text-gray-600 mb-6">
+              이 페이지는 관리자만 접근할 수 있습니다. 관리자 계정으로 로그인해주세요.
+            </p>
+            <button 
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              onClick={() => router.push('/admin/login')}
+            >
+              로그인 페이지로 이동
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -154,12 +208,12 @@ export default function NewReviewPage() {
                 새 리뷰 작성
               </h1>
               <p className="text-lg text-gray-700">
-                관리자 페이지에서 새로운 리뷰를 작성합니다
+                관리자 계정으로 새로운 리뷰를 작성합니다
               </p>
             </div>
           </div>
         </div>
-                
+        
         {/* 에러 메시지 표시 */}
         {error && (
           <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -177,20 +231,12 @@ export default function NewReviewPage() {
             </div>
           </div>
         )}
-        
-        {isLoading ? (
-          <div className="container mx-auto px-4 py-10 max-w-4xl">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden p-8 text-center">
-              <p className="text-gray-500">데이터베이스에 연결 중...</p>
-            </div>
-          </div>
-        ) : (
-          <ReviewForm
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isSubmitting={isSubmitting}
-          />
-        )}
+
+        <ReviewForm 
+          onSubmit={handleSubmit} 
+          onCancel={handleCancel}
+          isSubmitting={isSubmitting}
+        />
       </main>
       <Footer />
     </div>

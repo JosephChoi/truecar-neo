@@ -1,54 +1,55 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-ignore
+import { serve } from "http/server.ts";
+import { createClient } from "@supabase/supabase-js";
 
-serve(async (req) => {
-  // OPTIONS preflight 요청 처리 (CORS)
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  // POST 요청에서 reviewId 추출
-  const { reviewId } = await req.json();
+  try {
+    const { id } = await req.json();
+    
+    if (!id) {
+      throw new Error("ID is required");
+    }
 
-  console.log("SUPABASE_URL:", Deno.env.get("SUPABASE_URL"));
-  console.log("SUPABASE_SERVICE_ROLE_KEY:", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-  console.log("reviewId:", reviewId);
+    // @ts-ignore
+    const supabaseClient = createClient(
+      // @ts-ignore
+      Deno.env.get("SUPABASE_URL") ?? "",
+      // @ts-ignore
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
 
-  // 서비스 키로 supabase 클라이언트 생성 (엣지 펑션 환경변수 사용)
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+    const { data, error } = await supabaseClient
+      .from("posts")
+      .update({ views: supabaseClient.rpc("increment") })
+      .eq("id", id)
+      .select()
+      .single();
 
-  const { data, error: fetchError } = await supabase
-    .from("reviews")
-    .select("views")
-    .eq("id", reviewId)
-    .single();
+    if (error) throw error;
 
-  if (fetchError) {
-    // 에러 처리
+    return new Response(
+      JSON.stringify({ data }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      }
+    );
   }
-
-  const { error } = await supabase
-    .from("reviews")
-    .update({ views: (data.views || 0) + 1 })
-    .eq("id", reviewId);
-
-  if (error) {
-    return new Response(JSON.stringify({ error }), {
-      status: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-    });
-  }
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { "Access-Control-Allow-Origin": "*" },
-  });
 });

@@ -16,14 +16,23 @@ CREATE POLICY "모든 사용자가 리뷰를 읽을 수 있음" ON public.review
 CREATE POLICY "관리자만 리뷰를 생성할 수 있음" ON public.reviews
     FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid() IN (SELECT user_id FROM public.admin_users));
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM public.admin_users 
+      WHERE email = auth.email()
+    ));
 
 CREATE POLICY "관리자만 리뷰를 수정할 수 있음" ON public.reviews
     FOR UPDATE
     TO authenticated
-    USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
+    USING (EXISTS (
+      SELECT 1 FROM public.admin_users 
+      WHERE email = auth.email()
+    ));
 
 CREATE POLICY "관리자만 리뷰를 삭제할 수 있음" ON public.reviews
     FOR DELETE
     TO authenticated
-    USING (auth.uid() IN (SELECT user_id FROM public.admin_users)); 
+    USING (EXISTS (
+      SELECT 1 FROM public.admin_users 
+      WHERE email = auth.email()
+    )); 

@@ -35,6 +35,31 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
       try {
         setLoading(true);
         
+        // 먼저 관리자 권한 확인
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // 로그인되지 않은 경우 로그인 페이지로 리디렉션
+          console.log('세션 없음: 로그인 페이지로 이동');
+          router.replace('/admin/login');
+          return;
+        }
+        
+        // 관리자 권한 확인
+        const { data: adminUser, error: adminError } = await supabase
+          .from('admin_users')
+          .select('email')
+          .eq('email', session.user.email)
+          .single();
+          
+        if (adminError || !adminUser) {
+          // 관리자가 아닌 경우 로그인 페이지로 리디렉션
+          console.error('관리자 권한 없음:', adminError);
+          await supabase.auth.signOut();
+          router.replace('/admin/login?unauthorized=true');
+          return;
+        }
+        
         const { data, error: fetchError } = await supabase
           .from('reviews')
           .select('*')

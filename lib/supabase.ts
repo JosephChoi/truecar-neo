@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // 환경 변수 확인 및 디버깅
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // 환경 변수가 없을 경우 명확한 오류 메시지
 if (typeof window !== 'undefined') {  // 클라이언트 사이드에서만 체크
@@ -40,11 +40,16 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   console.log('Supabase Key available:', !!supabaseAnonKey);
 }
 
-// Supabase 클라이언트 생성
-export const supabase = createClient(
-  supabaseUrl || fallbackUrl, 
-  supabaseAnonKey || fallbackKey
-)
+// 싱글턴 패턴 적용
+let supabase: ReturnType<typeof createClient>
+
+if (!(globalThis as any).supabase) {
+  (globalThis as any).supabase = createClient(supabaseUrl, supabaseAnonKey)
+}
+
+supabase = (globalThis as any).supabase
+
+export { supabase }
 
 // 안전 체크 및 연결 테스트 함수
 export const testSupabaseConnection = async () => {
