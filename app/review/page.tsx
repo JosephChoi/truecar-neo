@@ -6,11 +6,15 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from '@/lib/supabase';
+import { ReviewService } from '@/lib/firestore-utils';
 
 function ReviewCard({ review }: { review: any }) {
   // 이미지 URL 결정 (리뷰 직접 이미지 또는 주문 내역 이미지)
   const imageUrl = review.image_url || review.imageUrl || (review.metadata?.imageUrl);
+
+  const formatViews = (views: number) => {
+    return views.toLocaleString();
+  };
 
   return (
     <Link href={`/review/${review.id}`} className="block h-full">
@@ -33,6 +37,17 @@ function ReviewCard({ review }: { review: any }) {
                 </svg>
               </div>
             )}
+            
+            {/* 조회수 배지 */}
+            <div className="absolute top-3 right-3">
+              <div className="bg-black/70 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                {formatViews(review.views || 0)}
+              </div>
+            </div>
           </div>
           
           {/* 콘텐츠 영역 */}
@@ -47,10 +62,21 @@ function ReviewCard({ review }: { review: any }) {
             
             <h2 className="text-lg font-bold mb-3 line-clamp-2 text-gray-900">{review.title}</h2>
             
-            <div className="flex items-center mt-auto text-xs text-gray-500">
-              <span>{review.author || '익명'}</span>
-              <span className="mx-2">•</span>
-              <span>{review.date || new Date(review.created_at).toLocaleDateString()}</span>
+            <div className="flex items-center justify-between mt-auto text-xs text-gray-500">
+              <div className="flex items-center">
+                <span>{review.author || '익명'}</span>
+                <span className="mx-2">•</span>
+                <span>{review.date || new Date(review.created_at).toLocaleDateString()}</span>
+              </div>
+              
+              {/* 하단 조회수 */}
+              <div className="flex items-center text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                {formatViews(review.views || 0)}
+              </div>
             </div>
           </CardContent>
         </div>
@@ -69,20 +95,9 @@ export default function ReviewPage() {
       try {
         setLoading(true);
 
-        // Supabase에서 리뷰 데이터 가져오기
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          // 에러 상세 출력
-          console.error('Supabase fetch error:', error);
-          setError('리뷰 데이터를 불러오지 못했습니다. 관리자에게 문의하세요.');
-          setReviews([]);
-          setLoading(false);
-          return;
-        }
+        // Firebase에서 리뷰 데이터 가져오기
+        const result = await ReviewService.getAllReviews();
+        const data = result.reviews;
 
         setReviews(data || []);
         setError(null);

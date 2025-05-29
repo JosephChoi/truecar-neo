@@ -6,7 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from '@/lib/supabase';
+import { ReviewService } from '@/lib/firestore-utils';
+import { FirebaseAuthService } from '@/lib/firebase-auth-utils';
 import { PlusIcon, PencilIcon, TrashIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function AdminReviewsPage() {
@@ -21,17 +22,10 @@ export default function AdminReviewsPage() {
       try {
         setLoading(true);
         
-        // 리뷰 데이터 로드
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          setError('리뷰 데이터를 불러오지 못했습니다.');
-        } else {
-          setReviews(data || []);
-        }
+        // Firebase에서 리뷰 데이터 로드
+        const result = await ReviewService.getAllReviews();
+        setReviews(result.reviews || []);
+        setError(null);
       } catch (err) {
         console.error('데이터 로드 중 오류:', err);
         setError('리뷰 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -45,23 +39,22 @@ export default function AdminReviewsPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', id);
-      if (!error) {
+      try {
+        await ReviewService.deleteReview(id);
         setReviews(reviews.filter(review => review.id !== id));
-      } else {
+      } catch (error) {
+        console.error('삭제 오류:', error);
         alert('삭제에 실패했습니다.');
       }
     }
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
+    try {
+      await FirebaseAuthService.signOut();
       window.location.href = '/admin/login';
-    } else {
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
       alert('로그아웃 중 오류가 발생했습니다.');
     }
   };

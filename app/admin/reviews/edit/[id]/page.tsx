@@ -6,7 +6,9 @@ import { Footer } from "@/components/layout/Footer";
 import ReviewForm from "@/components/admin/ReviewForm";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { FirebaseAuthService } from '@/lib/firebase-auth-utils';
+import { AdminUserService, ReviewService } from '@/lib/firestore-utils';
+import { FirebaseStorageService } from '@/lib/firebase-storage-utils';
 
 // Next.js 15 App Router에 맞게 Props 타입 정의
 interface EditReviewPageProps {
@@ -29,15 +31,15 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
     // 클라이언트 사이드에서만 실행
     if (typeof window === 'undefined') return;
     
-    // Supabase에서 리뷰 데이터 가져오기
+    // Firebase에서 리뷰 데이터 가져오기
     const fetchReview = async () => {
       try {
         setLoading(true);
         
         // 먼저 관리자 권한 확인
-        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = FirebaseAuthService.getCurrentUser();
         
-        if (!session) {
+        if (!currentUser || !currentUser.email) {
           // 로그인되지 않은 경우 로그인 페이지로 리디렉션
           console.log('세션 없음: 로그인 페이지로 이동');
           router.replace('/admin/login');
@@ -45,50 +47,40 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
         }
         
         // 관리자 권한 확인
-        const { data: adminUser, error: adminError } = await supabase
-          .from('admin_users')
-          .select('email')
-          .eq('email', session.user.email)
-          .single();
+        const isAdmin = await AdminUserService.isAdmin(currentUser.email);
           
-        if (adminError || !adminUser) {
+        if (!isAdmin) {
           // 관리자가 아닌 경우 로그인 페이지로 리디렉션
-          console.error('관리자 권한 없음:', adminError);
-          await supabase.auth.signOut();
+          console.error('관리자 권한 없음');
+          await FirebaseAuthService.signOut();
           router.replace('/admin/login?unauthorized=true');
           return;
         }
         
-        const { data, error: fetchError } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('id', reviewId)
-          .single();
+        const data = await ReviewService.getReviewById(reviewId);
         
-        if (fetchError) {
+        if (!data) {
           throw new Error('리뷰를 찾을 수 없습니다.');
         }
         
-        if (data) {
-          // ReviewForm 컴포넌트에 맞게 데이터 형식을 변환합니다.
-          setReview({
-            title: data.title || "",
-            content: data.content || "",
-            author: data.author || "",
-            date: data.date || data.created_at?.slice(0, 10) || new Date().toISOString().split('T')[0],
-            imageUrl: data.image_url || "",
-            orderDetail: {
-              vehicleType: data.vehicle_type || "",
-              budget: data.budget || "",
-              mileage: data.mileage || "",
-              preferredColor: data.preferred_color || "",
-              repairHistory: data.repair_history || "",
-              referenceSite: data.reference_site || ""
-            }
-          });
-        } else {
-          setError("리뷰를 찾을 수 없습니다.");
-        }
+        // ReviewForm 컴포넌트에 맞게 데이터 형식을 변환합니다.
+        setReview({
+          title: data.title || "",
+          content: data.content || "",
+          author: data.author || "",
+          date: data.date || (data.created_at && typeof data.created_at === 'object' && 'toDate' in data.created_at 
+            ? data.created_at.toDate().toISOString().slice(0, 10) 
+            : new Date().toISOString().split('T')[0]),
+          imageUrl: data.image_url || "",
+          orderDetail: {
+            vehicleType: data.vehicle_type || "",
+            budget: data.budget || "",
+            mileage: data.mileage || "",
+            preferredColor: data.preferred_color || "",
+            repairHistory: data.repair_history || "",
+            referenceSite: data.reference_site || ""
+          }
+        });
         
         setLoading(false);
       } catch (err: any) {
@@ -109,14 +101,17 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
       // 이미지 URL 처리
       let imageUrl = data.imageUrl;
       
-      // 새로운 이미지가 업로드된 경우 스토리지에 저장
+      // 새로운 이미지가 업로드된 경우 Firebase Storage에 저장
       if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
         try {
-          const uploadResult = await uploadImageToStorage(data.imageUrl);
-          imageUrl = uploadResult.url;
+          imageUrl = await FirebaseStorageService.uploadBase64Image(
+            data.imageUrl,
+            `reviews/review-edit-${reviewId}-${Date.now()}.jpg`
+          );
           console.log('이미지 업로드 성공:', imageUrl);
         } catch (imageError: any) {
           console.error('이미지 업로드 실패:', imageError);
+          // 이미지 업로드 실패 시에도 리뷰는 저장하되 기존 이미지 URL 유지
         }
       }
       
@@ -126,29 +121,19 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
         content: data.content,
         author: data.author,
         date: data.date,
-        image_url: imageUrl, // 수정: imageUrl -> image_url (Supabase 컬럼명)
+        image_url: imageUrl,
         vehicle_type: data.orderDetail.vehicleType,
         budget: data.orderDetail.budget,
         mileage: data.orderDetail.mileage,
         preferred_color: data.orderDetail.preferredColor,
         repair_history: data.orderDetail.repairHistory,
-        reference_site: data.orderDetail.referenceSite,
-        updated_at: new Date().toISOString()
+        reference_site: data.orderDetail.referenceSite
       };
       
       console.log("리뷰 업데이트 데이터:", reviewData);
       
-      // Supabase에 리뷰 업데이트
-      const { data: updatedReview, error: updateError } = await supabase
-        .from('reviews')
-        .update(reviewData)
-        .eq('id', reviewId)
-        .select()
-        .single();
-      
-      if (updateError) {
-        throw new Error(`리뷰 수정 오류: ${updateError.message}`);
-      }
+      // Firebase에 리뷰 업데이트
+      await ReviewService.updateReview(reviewId, reviewData);
       
       // 저장 후 관리 페이지로 이동
       alert('리뷰가 성공적으로 수정되었습니다.');
@@ -159,36 +144,6 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // 이미지를 Supabase Storage에 업로드하는 함수
-  const uploadImageToStorage = async (dataUrl: string): Promise<{ url: string }> => {
-    // Base64 데이터 URL을 Blob으로 변환
-    const base64Data = dataUrl.split(',')[1];
-    const blob = await (await fetch(`data:image/jpeg;base64,${base64Data}`)).blob();
-    
-    // 파일명 생성 (고유한 ID 사용)
-    const fileName = `review-${Date.now()}.jpg`;
-    
-    // Supabase Storage에 업로드
-    const { data, error } = await supabase.storage
-      .from('review-images')
-      .upload(`reviews/${fileName}`, blob, { 
-        contentType: 'image/jpeg',
-        cacheControl: '3600'
-      });
-    
-    if (error) {
-      throw new Error(`이미지 업로드 오류: ${error.message}`);
-    }
-    
-    // 업로드된 이미지의 공개 URL 생성
-    const { data: publicUrlData } = supabase
-      .storage
-      .from('review-images')
-      .getPublicUrl(`reviews/${fileName}`);
-    
-    return { url: publicUrlData.publicUrl };
   };
 
   const handleCancel = () => {

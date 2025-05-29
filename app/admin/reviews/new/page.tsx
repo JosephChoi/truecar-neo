@@ -5,7 +5,9 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ReviewForm from "@/components/admin/ReviewForm";
 import { useRouter } from "next/navigation";
-import { supabase } from '@/lib/supabase';
+import { FirebaseAuthService } from '@/lib/firebase-auth-utils';
+import { AdminUserService, ReviewService } from '@/lib/firestore-utils';
+import { FirebaseStorageService } from '@/lib/firebase-storage-utils';
 
 export default function NewReviewPage() {
   const router = useRouter();
@@ -18,10 +20,10 @@ export default function NewReviewPage() {
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // 세션 확인
-        const { data: { session } } = await supabase.auth.getSession();
+        // 현재 사용자 확인
+        const currentUser = FirebaseAuthService.getCurrentUser();
         
-        if (!session) {
+        if (!currentUser || !currentUser.email) {
           // 로그인되지 않은 경우 로그인 페이지로 리디렉션
           console.log('세션 없음: 로그인 페이지로 이동');
           router.replace('/admin/login');
@@ -29,16 +31,12 @@ export default function NewReviewPage() {
         }
         
         // 관리자 권한 확인
-        const { data: adminUser, error: adminError } = await supabase
-          .from('admin_users')
-          .select('email')
-          .eq('email', session.user.email)
-          .single();
+        const isAdminUser = await AdminUserService.isAdmin(currentUser.email);
           
-        if (adminError || !adminUser) {
+        if (!isAdminUser) {
           // 관리자가 아닌 경우 로그인 페이지로 리디렉션
-          console.error('관리자 권한 없음:', adminError);
-          await supabase.auth.signOut();
+          console.error('관리자 권한 없음');
+          await FirebaseAuthService.signOut();
           router.replace('/admin/login?unauthorized=true');
           return;
         }
@@ -69,14 +67,18 @@ export default function NewReviewPage() {
       // 이미지 URL 처리
       let imageUrl = data.imageUrl;
       
-      // 새로운 이미지가 업로드된 경우 스토리지에 저장
+      // 새로운 이미지가 업로드된 경우 Firebase Storage에 저장
       if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
         try {
-          const uploadResult = await uploadImage(data.imageUrl);
-          imageUrl = uploadResult.url;
+          imageUrl = await FirebaseStorageService.uploadBase64Image(
+            data.imageUrl,
+            `reviews/review-${Date.now()}.jpg`
+          );
           console.log('이미지 업로드 성공:', imageUrl);
         } catch (imageError: any) {
           console.error('이미지 업로드 실패:', imageError);
+          // 이미지 업로드 실패 시에도 리뷰는 저장하되 이미지 URL은 빈 문자열로 설정
+          imageUrl = '';
         }
       }
       
@@ -94,20 +96,14 @@ export default function NewReviewPage() {
         mileage: data.orderDetail.mileage,
         preferred_color: data.orderDetail.preferredColor,
         repair_history: data.orderDetail.repairHistory,
-        reference_site: data.orderDetail.referenceSite,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        reference_site: data.orderDetail.referenceSite
       };
       
-      // Supabase에 리뷰 저장
-      const { data: newReview, error: insertError } = await supabase
-        .from('reviews')
-        .insert([reviewData])
-        .select()
-        .single();
+      // Firebase에 리뷰 저장
+      const reviewId = await ReviewService.createReview(reviewData);
       
-      if (insertError) {
-        throw new Error(`리뷰 작성 오류: ${insertError.message}`);
+      if (!reviewId) {
+        throw new Error('리뷰 작성에 실패했습니다.');
       }
       
       // 저장 후 관리 페이지로 이동
@@ -119,36 +115,6 @@ export default function NewReviewPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  // 이미지를 스토리지에 업로드하는 함수
-  const uploadImage = async (dataUrl: string): Promise<{ url: string }> => {
-    // Base64 데이터 URL을 Blob으로 변환
-    const base64Data = dataUrl.split(',')[1];
-    const blob = await (await fetch(`data:image/jpeg;base64,${base64Data}`)).blob();
-    
-    // 파일명 생성 (고유한 ID 사용)
-    const fileName = `review-${Date.now()}.jpg`;
-    
-    // Supabase Storage에 업로드
-    const { data, error } = await supabase.storage
-      .from('review-images')
-      .upload(`reviews/${fileName}`, blob, { 
-        contentType: 'image/jpeg',
-        cacheControl: '3600'
-      });
-    
-    if (error) {
-      throw new Error(`이미지 업로드 오류: ${error.message}`);
-    }
-    
-    // 업로드된 이미지의 공개 URL 생성
-    const { data: publicUrlData } = supabase
-      .storage
-      .from('review-images')
-      .getPublicUrl(`reviews/${fileName}`);
-    
-    return { url: publicUrlData.publicUrl };
   };
 
   const handleCancel = () => {

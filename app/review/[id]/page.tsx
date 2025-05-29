@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ReviewDetail from "@/components/sections/ReviewDetail";
 import { notFound, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { ReviewService } from '@/lib/firestore-utils';
 
 interface ReviewPageProps {
   params: {
@@ -108,13 +108,9 @@ export default function ReviewDetailPage({ params }: ReviewPageProps) {
     const loadReviewData = async () => {
       try {
         // 1. 리뷰 데이터 조회
-        const { data, error: fetchError } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('id', reviewId)
-          .single();
+        const data = await ReviewService.getReviewById(reviewId);
 
-        if (fetchError || !data) {
+        if (!data) {
           setError('리뷰를 찾을 수 없습니다.');
           setLoading(false);
           return;
@@ -123,23 +119,7 @@ export default function ReviewDetailPage({ params }: ReviewPageProps) {
         setReview(data);
 
         // 2. 조회수 증가: 엣지 펑션 호출
-        fetch('https://dohupnobncsnpbjwuokl.functions.supabase.co/increment-views', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reviewId }),
-        })
-          .then(res => res.json())
-          .then(result => {
-            if (!result.success) {
-              console.error('조회수 증가 실패:', result.error);
-            } else {
-              // 성공 시, 프론트엔드에서 views를 1 증가시켜 반영
-              setReview((prev: any) => prev ? { ...prev, views: (prev.views || 0) + 1 } : prev);
-            }
-          })
-          .catch(err => {
-            console.error('조회수 증가 네트워크 에러:', err);
-          });
+        await ReviewService.incrementViews(reviewId);
 
         setLoading(false);
       } catch (err: any) {

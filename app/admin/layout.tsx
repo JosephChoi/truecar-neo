@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { FirebaseAuthService } from '@/lib/firebase-auth-utils'
+import { AdminUserService } from '@/lib/firestore-utils'
 import { usePathname } from 'next/navigation'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
@@ -10,72 +13,84 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname() ?? ''
 
   useEffect(() => {
+    console.log('[AdminLayout] === 인증 검사 시작 ===')
+    console.log('[AdminLayout] 현재 경로:', pathname)
+    
     // 로그인/회원가입/인덱스 페이지는 인증 없이 접근 가능
     const publicPages = ['/admin/login', '/admin/signup', '/admin']
     if (publicPages.includes(pathname)) {
-      // 공개 페이지는 인증 검사 없이 바로 표시
+      console.log('[AdminLayout] 공개 페이지 - 인증 검사 생략')
       setLoading(false)
       setAuthorized(true)
       return
     }
     
-    // 비공개 페이지 (리뷰 관리 등)에만 인증 확인
-    const checkAdmin = async () => {
+    console.log('[AdminLayout] 비공개 페이지 - 인증 검사 필요')
+    
+    // onAuthStateChanged를 사용하여 Firebase Auth 상태 변화 감지
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
-        // 세션 확인
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log('[AdminLayout] session:', session)
+        console.log('[AdminLayout] Auth state changed:', user?.email)
         
-        // 세션이 없으면 로그인 페이지로 이동
-        if (!session) {
-          console.log('관리자 레이아웃: 로그인이 필요합니다')
+        if (!user || !user.email) {
+          console.log('[AdminLayout] 인증되지 않은 사용자 - 로그인 페이지로 리다이렉션')
+          setAuthorized(false)
+          setLoading(false)
           window.location.href = '/admin/login'
           return
         }
         
-        // 관리자 권한 확인
-        const { data: adminUser, error } = await supabase
-          .from('admin_users')
-          .select('email')
-          .eq('email', session.user.email ?? '')
-          .single()
-        console.log('[AdminLayout] adminUser:', adminUser, 'error:', error)
+        console.log('[AdminLayout] 인증된 사용자 감지 - 관리자 권한 확인 시작')
         
-        if (error || !adminUser) {
-          console.log('관리자 레이아웃: 관리자 권한이 없습니다')
-          await supabase.auth.signOut()
+        // 관리자 권한 확인
+        const isAdmin = await AdminUserService.isAdmin(user.email)
+        console.log('[AdminLayout] 관리자 권한 확인 결과:', isAdmin)
+        
+        if (!isAdmin) {
+          console.log('[AdminLayout] 관리자 권한 없음 - 로그아웃 후 로그인 페이지로 이동')
+          await FirebaseAuthService.signOut()
           window.location.href = '/admin/login?unauthorized=true'
           return
         }
         
-        // 관리자 확인 완료
-        console.log('관리자 레이아웃: 관리자 확인 완료')
+        console.log('[AdminLayout] 인증 및 권한 확인 완료 - 페이지 접근 허용')
         setAuthorized(true)
-      } catch (err) {
-        console.error('관리자 레이아웃: 인증 확인 중 오류:', err)
-        window.location.href = '/admin/login?error=true'
-      } finally {
         setLoading(false)
+        
+      } catch (error) {
+        console.error('[AdminLayout] 인증 검사 오류:', error)
+        setAuthorized(false)
+        setLoading(false)
+        window.location.href = '/admin/login?error=true'
       }
-    }
+    })
     
-    checkAdmin().finally(() => setLoading(false))
+    // 컴포넌트 언마운트 시 리스너 정리
+    return () => {
+      console.log('[AdminLayout] Auth state listener 정리')
+      unsubscribe()
+    }
   }, [pathname])
-  
-  // 로딩 중이면 로딩 표시
+
+  // 로딩 중일 때 표시할 UI
   if (loading) {
+    console.log('[AdminLayout] 로딩 중...')
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">인증 확인 중...</p>
+        </div>
       </div>
     )
   }
-  
-  // 권한이 없으면 접근 거부 메시지
+
+  // 인증되지 않았을 때
   if (!authorized) {
-    return null // 인증 실패 시 아무것도 렌더링하지 않음(리다이렉트)
+    console.log('[AdminLayout] 인증 실패 - 빈 화면 표시')
+    return null // 리다이렉션 처리 중이므로 빈 화면 표시
   }
-  
-  // 권한이 있으면 자식 컴포넌트 렌더링
-  return children
+
+  console.log('[AdminLayout] 인증 완료 - 페이지 렌더링')
+  return <>{children}</>
 }

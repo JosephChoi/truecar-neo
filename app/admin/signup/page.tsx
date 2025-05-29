@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from '@/lib/supabase';
+import { FirebaseAuthService } from '@/lib/firebase-auth-utils';
+import { AdminUserService } from '@/lib/firestore-utils';
 
 // 디버깅용 로깅 함수
 const debug = (message: string, data?: any) => {
@@ -25,37 +26,23 @@ export default function AdminSignup() {
     try {
       debug('회원가입 시도', { email });
       
-      // 1. Supabase Auth로 회원가입
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      // 1. Firebase Auth로 회원가입
+      const user = await FirebaseAuthService.signUpWithEmail(email, password);
       
-      if (error) {
-        debug('회원가입 실패', { error });
-        throw error;
+      if (!user || !user.email) {
+        throw new Error('회원가입에 실패했습니다.');
       }
       
-      debug('회원가입 성공', { userId: data?.user?.id });
+      debug('회원가입 성공', { userId: user.uid });
       
-      if (data?.user) {
-        // 2. 사용자가 생성되면 admin_users 테이블에도 추가 (user_id 포함)
-        const { error: adminError } = await supabase
-          .from('admin_users')
-          .insert([{ email: data.user.email, user_id: data.user.id }]);
-        
-        // admin_users 테이블 추가 실패 시 에러 처리
-        if (adminError) {
-          debug('관리자 테이블 등록 오류', adminError);
-          throw new Error('관리자 권한 등록에 실패했습니다. 관리자에게 문의하세요.');
-        }
-        
-        debug('관리자 등록 성공');
-        
-        // 3. 성공 메시지 표시 및 로그인 페이지로 리다이렉션
-        setSuccess(true);
-        setTimeout(() => window.location.href = '/admin/login', 2000);
-      }
+      // 2. 관리자 사용자 테이블에 추가
+      await AdminUserService.createAdmin({ email: user.email });
+      
+      debug('관리자 등록 성공');
+      
+      // 3. 성공 메시지 표시 및 로그인 페이지로 리다이렉션
+      setSuccess(true);
+      setTimeout(() => window.location.href = '/admin/login', 2000);
     } catch (err: any) {
       debug('회원가입 중 오류', err);
       setError(err.message || '회원가입 중 오류가 발생했습니다.');
