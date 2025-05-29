@@ -15,6 +15,9 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { FirebaseStorageService } from '@/lib/firebase-storage-utils'
 // Next.js Image 컴포넌트를 사용하지 않고 직접 참조하여 오류 발생
 // import Image from "next/image";
 
@@ -79,13 +82,43 @@ export default function ReviewForm({
     defaultValues
   });
 
-  const handleFormSubmit = (data: ReviewFormData) => {
-    // 이미지가 있으면 리뷰 데이터에 포함
-    if (imagePreview) {
-      data.imageUrl = imagePreview;
+  const handleFormSubmit = async (data: ReviewFormData) => {
+    try {
+      // 이미지가 있으면 Firebase Storage에 업로드
+      if (imagePreview && imagePreview.startsWith('data:')) {
+        console.log('🔄 Firebase Storage에 이미지 업로드 중...')
+        
+        // Base64 데이터를 Blob으로 변환
+        const base64Data = imagePreview.split(',')[1]
+        const mimeType = imagePreview.split(',')[0].split(':')[1].split(';')[0]
+        
+        const byteCharacters = atob(base64Data)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: mimeType })
+        
+        // File 객체 생성
+        const fileName = `review_${Date.now()}.jpg`
+        const file = new File([blob], fileName, { type: mimeType })
+        
+        // Firebase Storage에 업로드
+        const firebaseImageUrl = await FirebaseStorageService.uploadReviewImage(file)
+        data.imageUrl = firebaseImageUrl
+        
+        console.log('✅ Firebase Storage 업로드 성공:', firebaseImageUrl)
+      } else if (imagePreview) {
+        // 이미 Firebase URL인 경우 (수정 시)
+        data.imageUrl = imagePreview
+      }
+      
+      onSubmit(data)
+    } catch (error) {
+      console.error('❌ 이미지 업로드 오류:', error)
+      setImageError('이미지 업로드에 실패했습니다. 다시 시도해주세요.')
     }
-    
-    onSubmit(data);
   };
 
   // 이미지 압축 함수

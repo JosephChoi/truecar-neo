@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     console.log('[AdminLayout] 현재 경로:', pathname)
     
     // 로그인/회원가입/인덱스 페이지는 인증 없이 접근 가능
-    const publicPages = ['/admin/login', '/admin/signup', '/admin']
+    const publicPages = ['/admin/login', '/admin']
     if (publicPages.includes(pathname)) {
       console.log('[AdminLayout] 공개 페이지 - 인증 검사 생략')
       setLoading(false)

@@ -280,11 +280,11 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex justify-center items-center mt-4">
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-1/2 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed mr-2"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="flex items-center">
@@ -297,13 +297,6 @@ export default function AdminLogin() {
               ) : (
                 '로그인'
               )}
-            </button>
-            <button
-              type="button"
-              className="w-1/2 flex justify-center py-2 px-4 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ml-2"
-              onClick={() => router.push('/admin/signup')}
-            >
-              관리자가입
             </button>
           </div>
 

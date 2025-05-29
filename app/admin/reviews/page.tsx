@@ -142,7 +142,7 @@ export default function AdminReviewsPage() {
                         작성일
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        상태
+                        조회수
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         관리
@@ -170,12 +170,8 @@ export default function AdminReviewsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${review.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                              review.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-red-100 text-red-800'}`}>
-                            {review.status === 'approved' ? '승인됨' : 
-                             review.status === 'pending' ? '대기중' : '거부됨'}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {(review.views || 0).toLocaleString()} 회
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase & backup files
+/scripts/backup-*/
+/scripts/*-report-*.json
+firebase-debug.log
+
+# IDE files
+.cursor/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride

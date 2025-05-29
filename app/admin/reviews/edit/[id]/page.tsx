@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { FirebaseAuthService } from '@/lib/firebase-auth-utils';
 import { AdminUserService, ReviewService } from '@/lib/firestore-utils';
-import { FirebaseStorageService } from '@/lib/firebase-storage-utils';
 
 // Next.js 15 App Router에 맞게 Props 타입 정의
 interface EditReviewPageProps {
@@ -98,30 +97,13 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
     setError(null);
     
     try {
-      // 이미지 URL 처리
-      let imageUrl = data.imageUrl;
-      
-      // 새로운 이미지가 업로드된 경우 Firebase Storage에 저장
-      if (data.imageUrl && data.imageUrl.startsWith('data:image/')) {
-        try {
-          imageUrl = await FirebaseStorageService.uploadBase64Image(
-            data.imageUrl,
-            `reviews/review-edit-${reviewId}-${Date.now()}.jpg`
-          );
-          console.log('이미지 업로드 성공:', imageUrl);
-        } catch (imageError: any) {
-          console.error('이미지 업로드 실패:', imageError);
-          // 이미지 업로드 실패 시에도 리뷰는 저장하되 기존 이미지 URL 유지
-        }
-      }
-      
-      // 리뷰 데이터 구성
+      // ReviewForm에서 이미 Firebase Storage 업로드 처리가 완료된 상태
       const reviewData = {
         title: data.title,
         content: data.content,
         author: data.author,
         date: data.date,
-        image_url: imageUrl,
+        image_url: data.imageUrl || '', // ReviewForm에서 처리된 Firebase URL 또는 빈 문자열
         vehicle_type: data.orderDetail.vehicleType,
         budget: data.orderDetail.budget,
         mileage: data.orderDetail.mileage,
