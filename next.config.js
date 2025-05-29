@@ -14,8 +14,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    // Firebase 환경변수들은 NEXT_PUBLIC_ 접두사로 자동 노출되므로 여기서 설정할 필요 없음
   },
 }
 
