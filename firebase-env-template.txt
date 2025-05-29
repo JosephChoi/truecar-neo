@@ -1,0 +1,17 @@
+# Firebase 환경 변수 설정 가이드
+# 이 내용을 .env.local 파일에 복사하여 사용하세요
+
+# Firebase 설정 (Firebase 콘솔에서 프로젝트 설정 > 일반 > 웹 앱에서 확인 가능)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+# Firebase 프로젝트 설정 정보를 얻는 방법:
+# 1. Firebase 콘솔 (https://console.firebase.google.com/) 접속
+# 2. 생성한 프로젝트 선택
+# 3. 프로젝트 설정 (톱니바퀴 아이콘) > 일반 탭
+# 4. 웹 앱 섹션에서 SDK 설정 및 구성 정보 확인
+# 5. 위의 값들을 해당하는 환경 변수에 입력 
