@@ -5,6 +5,16 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'localhost:3001']
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/v0/b/**',
+      },
+    ],
+  },
   eslint: {
     // Warning: 프로덕션 환경에서는 나중에 다시 활성화하는 것이 좋습니다
     ignoreDuringBuilds: true,

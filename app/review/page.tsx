@@ -22,7 +22,7 @@ function ReviewCard({ review }: { review: any }) {
         <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
           <Image
             src={displayImageUrl}
-            alt={review.title}
+                alt={review.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -33,8 +33,8 @@ function ReviewCard({ review }: { review: any }) {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-        </div>
-        
+          </div>
+          
         <div className="flex flex-col flex-grow">
           <CardContent className="p-4 sm:p-5 flex flex-col flex-grow">
             {review.vehicle_type && (

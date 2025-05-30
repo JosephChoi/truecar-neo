@@ -22,8 +22,8 @@ export default function AdminReviewsPage() {
       try {
         setLoading(true);
         
-        // Firebase에서 리뷰 데이터 로드
-        const result = await ReviewService.getAllReviews();
+        // 관리자용 모든 리뷰 데이터 로드 (삭제된 것도 포함)
+        const result = await ReviewService.getAllReviewsForAdmin();
         setReviews(result.reviews || []);
         setError(null);
       } catch (err) {
@@ -41,10 +41,44 @@ export default function AdminReviewsPage() {
     if (confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
       try {
         await ReviewService.deleteReview(id);
-        setReviews(reviews.filter(review => review.id !== id));
+        // 로컬 상태에서 상태만 업데이트 (삭제하지 않음)
+        setReviews(reviews.map(review => 
+          review.id === id 
+            ? { ...review, status: 'inactive' }
+            : review
+        ));
       } catch (error) {
         console.error('삭제 오류:', error);
         alert('삭제에 실패했습니다.');
+      }
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    if (confirm("이 리뷰를 복원하시겠습니까?")) {
+      try {
+        await ReviewService.restoreReview(id);
+        // 로컬 상태에서 상태 업데이트
+        setReviews(reviews.map(review => 
+          review.id === id 
+            ? { ...review, status: 'active' }
+            : review
+        ));
+      } catch (error) {
+        console.error('복원 오류:', error);
+        alert('복원에 실패했습니다.');
+      }
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    if (confirm("정말로 이 리뷰를 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+      try {
+        await ReviewService.permanentDeleteReview(id);
+        setReviews(reviews.filter(review => review.id !== id));
+      } catch (error) {
+        console.error('영구 삭제 오류:', error);
+        alert('영구 삭제에 실패했습니다.');
       }
     }
   };
@@ -142,6 +176,9 @@ export default function AdminReviewsPage() {
                         작성일
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        상태
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         조회수
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -151,7 +188,7 @@ export default function AdminReviewsPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {reviews.map((review) => (
-                      <tr key={review.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={review.id} className={`hover:bg-gray-50 transition-colors ${review.status === 'inactive' ? 'bg-red-50' : ''}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="text-sm font-medium text-gray-900">
@@ -170,30 +207,63 @@ export default function AdminReviewsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            review.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {review.status === 'active' ? '활성' : '삭제됨'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {(review.views || 0).toLocaleString()} 회
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => router.push(`/admin/reviews/edit/${review.id}`)}
-                              className="flex items-center space-x-1"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                              <span>수정</span>
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(review.id)}
-                              className="flex items-center space-x-1"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                              <span>삭제</span>
-                            </Button>
+                            {review.status === 'active' ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => router.push(`/admin/reviews/edit/${review.id}`)}
+                                  className="flex items-center space-x-1"
+                                >
+                                  <PencilIcon className="w-4 h-4" />
+                                  <span>수정</span>
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDelete(review.id)}
+                                  className="flex items-center space-x-1"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                  <span>삭제</span>
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRestore(review.id)}
+                                  className="flex items-center space-x-1 text-green-600 border-green-600 hover:bg-green-50"
+                                >
+                                  <span>복원</span>
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handlePermanentDelete(review.id)}
+                                  className="flex items-center space-x-1 bg-red-700 hover:bg-red-800"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                  <span>영구삭제</span>
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

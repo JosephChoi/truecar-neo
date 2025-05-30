@@ -242,6 +242,65 @@ export class ReviewService {
     }
   }
 
+  // 관리자용 모든 리뷰 조회 (상태 무관, 삭제된 것도 포함)
+  static async getAllReviewsForAdmin(pageSize: number = 50, lastDoc?: any) {
+    try {
+      let q = query(
+        this.collectionRef,
+        orderBy('created_at', 'desc'),
+        limit(pageSize)
+      )
+
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc))
+      }
+
+      const snapshot = await getDocs(q)
+      const reviews: Review[] = []
+      
+      snapshot.forEach((doc) => {
+        reviews.push({
+          id: doc.id,
+          ...doc.data()
+        } as Review)
+      })
+
+      return {
+        reviews,
+        lastDoc: snapshot.docs[snapshot.docs.length - 1],
+        hasMore: snapshot.docs.length === pageSize
+      }
+    } catch (error) {
+      console.error('관리자용 리뷰 목록 조회 오류:', error)
+      throw error
+    }
+  }
+
+  // 리뷰 완전 삭제 (관리자 전용)
+  static async permanentDeleteReview(id: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTIONS.REVIEWS, id)
+      await deleteDoc(docRef)
+    } catch (error) {
+      console.error('리뷰 완전 삭제 오류:', error)
+      throw error
+    }
+  }
+
+  // 삭제된 리뷰 복원 (관리자 전용)
+  static async restoreReview(id: string): Promise<void> {
+    try {
+      const docRef = doc(db, COLLECTIONS.REVIEWS, id)
+      await updateDoc(docRef, {
+        status: REVIEW_STATUS.ACTIVE,
+        updated_at: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('리뷰 복원 오류:', error)
+      throw error
+    }
+  }
+
   // 조회수 통계 조회
   static async getViewsStats() {
     try {
