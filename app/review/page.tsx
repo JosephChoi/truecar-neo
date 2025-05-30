@@ -10,68 +10,53 @@ import { ReviewService } from '@/lib/firestore-utils';
 
 function ReviewCard({ review }: { review: any }) {
   // 이미지 URL 결정 (리뷰 직접 이미지 또는 주문 내역 이미지)
-  const imageUrl = review.image_url || review.imageUrl || (review.metadata?.imageUrl);
+  const displayImageUrl = review.image_url || review.imageUrl || '/images/default-car.jpg';
 
   const formatViews = (views: number) => {
     return views.toLocaleString();
   };
 
   return (
-    <Link href={`/review/${review.id}`} className="block h-full">
-      <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer h-full">
-        <div className="flex flex-col h-full">
-          {/* 이미지 영역 */}
-          <div className="relative aspect-[4/3] overflow-hidden w-full">
-            {imageUrl ? (
-              <img 
-                src={imageUrl} 
-                alt={review.title}
-                className="object-cover w-full h-full"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                  <circle cx="9" cy="9" r="2"></circle>
-                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                </svg>
-              </div>
-            )}
-            
-            {/* 조회수 배지 */}
-            <div className="absolute top-3 right-3">
-              <div className="bg-black/70 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                {formatViews(review.views || 0)}
-              </div>
-            </div>
-          </div>
-          
-          {/* 콘텐츠 영역 */}
-          <CardContent className="p-4 flex flex-col flex-grow">
+    <Link href={`/review/${review.id}`} className="block group">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+        <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
+          <Image
+            src={displayImageUrl}
+            alt={review.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={(e) => {
+              console.log('Image load error for:', displayImageUrl);
+              const target = e.target as HTMLImageElement;
+              target.src = '/images/default-car.jpg';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        </div>
+        
+        <div className="flex flex-col flex-grow">
+          <CardContent className="p-4 sm:p-5 flex flex-col flex-grow">
             {review.vehicle_type && (
-              <div className="mb-2">
-                <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+              <div className="mb-3">
+                <span className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
                   {review.vehicle_type}
                 </span>
               </div>
             )}
             
-            <h2 className="text-lg font-bold mb-3 line-clamp-2 text-gray-900">{review.title}</h2>
+            <h2 className="subheading-mobile-friendly font-bold mb-4 line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors">{review.title}</h2>
             
-            <div className="flex items-center justify-between mt-auto text-xs text-gray-500">
+            <div className="flex items-center justify-between mt-auto text-sm text-gray-500">
               <div className="flex items-center">
-                <span>{review.author || '익명'}</span>
+                <span className="font-medium">{review.author || '익명'}</span>
                 <span className="mx-2">•</span>
                 <span>{review.date || new Date(review.created_at).toLocaleDateString()}</span>
               </div>
               
               {/* 하단 조회수 */}
               <div className="flex items-center text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
@@ -125,13 +110,13 @@ export default function ReviewPage() {
           
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-block px-4 py-1 rounded-full text-blue-700 bg-blue-100 text-sm font-medium mb-6">
+              <div className="inline-block px-4 py-2 rounded-full text-blue-700 bg-blue-100 text-sm font-medium mb-6">
                 REVIEWS
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h1 className="heading-mobile-friendly text-gray-900 mb-6">
                 고객 후기
               </h1>
-              <p className="text-xl text-gray-700 max-w-3xl mx-auto">
+              <p className="subheading-mobile-friendly text-gray-700 max-w-3xl mx-auto leading-relaxed">
                 트루카 서비스를 이용한 고객님들의 생생한 후기를 확인해보세요
               </p>
             </div>

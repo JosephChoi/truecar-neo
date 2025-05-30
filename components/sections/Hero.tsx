@@ -98,57 +98,60 @@ export function Hero() {
       <div className="container mx-auto px-4 h-full flex items-center relative z-10">
         <div className="grid md:grid-cols-2 gap-6 lg:gap-10 w-full">
           {/* 좌측 메인 콘텐츠 */}
-          <div className="max-w-2xl space-y-4 flex flex-col justify-center">
+          <div className="max-w-2xl space-y-6 flex flex-col justify-center">
             <div className="inline-flex px-3 py-1 rounded-full text-yellow-400 bg-yellow-900/30 text-sm font-medium backdrop-blur-sm w-fit">
               중고차를 사는 새로운 방법
             </div>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+            <h1 className="heading-mobile-friendly text-white font-bold">
               트루카 <span className="text-yellow-400">주문형</span> 중고차
             </h1>
-            <p className="text-lg md:text-xl text-white max-w-2xl">
+            <p className="text-mobile-friendly text-white/90 max-w-2xl leading-relaxed">
               맞춤형 주문으로 허위매물 없는 거래<br />
               성능 보증을 통한 확실한 차량
             </p>
             
             {/* 핵심 서비스 특징 아이템 */}
-            <div className="space-y-2 md:space-y-3">
+            <div className="space-y-4 md:space-y-5">
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-yellow-400/20 rounded-full p-1 backdrop-blur-sm">
+                <div className="mt-2 bg-yellow-400/20 rounded-full p-1.5 backdrop-blur-sm flex-shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
                     <path d="m5 12 5 5L20 7"></path>
                   </svg>
                 </div>
-                <p className="text-base md:text-lg text-gray-200">
-                  <span className="font-medium text-white">20년 경력의 전문가</span>가 내게 딱 맞는 차량을 찾아드립니다
+                <p className="text-base md:text-lg text-gray-200 leading-relaxed">
+                  <span className="font-semibold text-white">20년 경력의 전문가</span>가<br />
+                  내게 딱 맞는 차량을 찾아드립니다
                 </p>
               </div>
               
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-yellow-400/20 rounded-full p-1 backdrop-blur-sm">
+                <div className="mt-2 bg-yellow-400/20 rounded-full p-1.5 backdrop-blur-sm flex-shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
                     <path d="m5 12 5 5L20 7"></path>
                   </svg>
                 </div>
-                <p className="text-base md:text-lg text-gray-200">
-                  딜러를 통하지 않는 <span className="font-medium text-white">본사 직접 거래</span>로 최저가 구매
+                <p className="text-base md:text-lg text-gray-200 leading-relaxed">
+                  딜러를 통하지 않는<br />
+                  <span className="font-semibold text-white">본사 직접 거래</span>로 최저가 구매
                 </p>
               </div>
               
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-yellow-400/20 rounded-full p-1 backdrop-blur-sm">
+                <div className="mt-2 bg-yellow-400/20 rounded-full p-1.5 backdrop-blur-sm flex-shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
                     <path d="m5 12 5 5L20 7"></path>
                   </svg>
                 </div>
-                <p className="text-base md:text-lg text-gray-200">
-                  <span className="font-medium text-white">전문적인 점검과 성능 보증</span>으로 안심 구매
+                <p className="text-base md:text-lg text-gray-200 leading-relaxed">
+                  <span className="font-semibold text-white">전문적인 점검과 성능 보증</span>으로<br />
+                  안심 구매
                 </p>
               </div>
             </div>
             
             {/* CTA 버튼 */}
-            <div className="flex flex-wrap pt-6 mt-2">
-              <Button asChild size="lg" className="text-base px-8 py-5 h-auto rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors shadow-lg hover:shadow-xl text-black font-semibold">
+            <div className="flex justify-center md:justify-start pt-6 mt-2">
+              <Button asChild size="lg" className="btn-touch-friendly text-base px-8 py-5 h-auto rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors shadow-lg hover:shadow-xl text-black font-semibold">
                 <Link href="/order">
                   맞춤 중고차 주문하기
                 </Link>

@@ -13,24 +13,24 @@ export function Header() {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/" className="flex items-center">
           <div className="flex items-center">
-            <h1 className="text-3xl font-bold text-blue-600">TrueCar</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-blue-600">TrueCar</h1>
           </div>
         </Link>
         
         <div className="hidden md:flex items-center justify-end flex-1 gap-12">
           <nav className="flex space-x-10 justify-end">
-            <Link href="/blog" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-[1.1rem]">
+            <Link href="/blog" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-base md:text-[1.1rem]">
               Blog
             </Link>
-            <Link href="/story" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-[1.1rem]">
+            <Link href="/story" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-base md:text-[1.1rem]">
               STORY
             </Link>
-            <Link href="/review" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-[1.1rem]">
+            <Link href="/review" className="text-gray-700 hover:text-blue-600 font-medium transition-colors text-base md:text-[1.1rem]">
               REVIEW
             </Link>
           </nav>
           
-          <Button asChild variant="default" className="bg-blue-600 hover:bg-blue-700 rounded-full px-7 py-2 h-auto transition-colors text-base">
+          <Button asChild variant="default" className="btn-touch-friendly bg-blue-600 hover:bg-blue-700 rounded-full px-7 py-2 h-auto transition-colors text-base font-medium">
             <Link href="/order">
               맞춤 주문하기
             </Link>
@@ -38,7 +38,7 @@ export function Header() {
         </div>
         
         <button 
-          className="md:hidden text-gray-700"
+          className="md:hidden text-gray-700 p-2"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? (
@@ -59,17 +59,17 @@ export function Header() {
       {/* 모바일 메뉴 */}
       {isMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b shadow-lg z-40">
-          <div className="container mx-auto px-4 py-4 flex flex-col space-y-3">
-            <Link href="/blog" className="py-3 text-gray-700 hover:text-blue-600 font-medium text-[1.1rem]" onClick={() => setIsMenuOpen(false)}>
+          <div className="container mx-auto px-4 py-6 flex flex-col space-y-2">
+            <Link href="/blog" className="btn-touch-friendly text-gray-700 hover:text-blue-600 font-medium text-lg text-center rounded-lg hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>
               Blog
             </Link>
-            <Link href="/story" className="py-3 text-gray-700 hover:text-blue-600 font-medium text-[1.1rem]" onClick={() => setIsMenuOpen(false)}>
+            <Link href="/story" className="btn-touch-friendly text-gray-700 hover:text-blue-600 font-medium text-lg text-center rounded-lg hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>
               STORY
             </Link>
-            <Link href="/review" className="py-3 text-gray-700 hover:text-blue-600 font-medium text-[1.1rem]" onClick={() => setIsMenuOpen(false)}>
+            <Link href="/review" className="btn-touch-friendly text-gray-700 hover:text-blue-600 font-medium text-lg text-center rounded-lg hover:bg-gray-50 transition-colors" onClick={() => setIsMenuOpen(false)}>
               REVIEW
             </Link>
-            <Button asChild variant="default" className="bg-blue-600 hover:bg-blue-700 rounded-full px-7 py-2 h-auto transition-colors text-base mt-2">
+            <Button asChild variant="default" className="btn-touch-friendly bg-blue-600 hover:bg-blue-700 rounded-full px-7 py-3 h-auto transition-colors text-base font-medium mt-4">
               <Link href="/order" onClick={() => setIsMenuOpen(false)}>
                 맞춤 주문하기
               </Link>

@@ -118,6 +118,83 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* 모바일 최적화된 타이포그래피 */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  
+  p {
+    line-height: 1.7;
+    color: oklch(0.45 0.01 286);
+  }
+  
+  /* 모바일에서 더 나은 가독성을 위한 설정 */
+  @media (max-width: 768px) {
+    body {
+      font-size: 16px; /* iOS에서 줌을 방지하기 위한 최소 크기 */
+      line-height: 1.6;
+    }
+    
+    h1 {
+      font-size: 2rem; /* 32px */
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    
+    h2 {
+      font-size: 1.75rem; /* 28px */
+      line-height: 1.25;
+      margin-bottom: 0.875rem;
+    }
+    
+    h3 {
+      font-size: 1.5rem; /* 24px */
+      line-height: 1.3;
+      margin-bottom: 0.75rem;
+    }
+    
+    h4 {
+      font-size: 1.25rem; /* 20px */
+      line-height: 1.35;
+      margin-bottom: 0.625rem;
+    }
+    
+    p {
+      font-size: 1rem; /* 16px */
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+    
+    /* 작은 텍스트의 최소 크기 보장 */
+    .text-xs {
+      font-size: 0.875rem; /* 14px */
+    }
+    
+    .text-sm {
+      font-size: 0.9375rem; /* 15px */
+    }
+    
+    /* 긴 텍스트 블록의 가독성 향상 */
+    .text-content {
+      line-height: 1.8;
+      word-spacing: 0.1em;
+    }
+    
+    /* 모바일에서 줄간격 개선 */
+    .leading-relaxed {
+      line-height: 1.75;
+    }
+    
+    .leading-loose {
+      line-height: 1.9;
+    }
   }
 }
 
@@ -129,5 +206,36 @@
   
   .perspective-1000 {
     perspective: 1000px;
+  }
+  
+  /* 모바일 친화적 유틸리티 클래스 */
+  .text-mobile-friendly {
+    font-size: clamp(1rem, 2.5vw, 1.125rem);
+    line-height: 1.7;
+  }
+  
+  .heading-mobile-friendly {
+    font-size: clamp(1.5rem, 5vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  
+  .subheading-mobile-friendly {
+    font-size: clamp(1.125rem, 3.5vw, 1.5rem);
+    line-height: 1.3;
+  }
+  
+  /* 터치 친화적 버튼 크기 */
+  .btn-touch-friendly {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1.5rem;
+  }
+  
+  /* 모바일에서 더 나은 읽기 경험 */
+  .reading-optimized {
+    max-width: 65ch;
+    line-height: 1.7;
+    font-size: clamp(1rem, 2.5vw, 1.125rem);
   }
 }
